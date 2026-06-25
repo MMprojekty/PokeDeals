@@ -1,0 +1,286 @@
+import { createClient } from "@supabase/supabase-js";
+
+/** One shop offer attached to a canonical product (comparison row). */
+export type ShopOffer = {
+  listingId: string;
+  shopSlug: string;
+  shopName: string;
+  rawTitle: string;
+  productUrl: string;
+  priceHuf: number;
+  stockStatus: string;
+  imageUrl: string | null;
+  scrapedAt: string | null;
+};
+
+/** Canonical product with grouped in-stock offers, ready for the UI. */
+export type ComparisonProduct = {
+  productId: string;
+  displayTitle: string;
+  category: string | null;
+  setName: string | null;
+  imageUrl: string;
+  lowestPrice: number;
+  highestPrice: number;
+  medianPrice: number;
+  spread: number;
+  bestVsMedian: number;
+  score: number;
+  offers: ShopOffer[];
+};
+
+type ListingRow = {
+  product_id: string;
+  canonical_name: string;
+  canonical_slug: string;
+  category: string | null;
+  set_name: string | null;
+  product_image_url: string | null;
+  listing_id: string;
+  shop_slug: string;
+  shop_name: string;
+  raw_title: string;
+  product_url: string;
+  price_huf: number;
+  stock_status: string;
+  listing_image_url: string | null;
+  scraped_at: string | null;
+  updated_at: string | null;
+};
+
+/** Legacy flat table shape (current production: shop_listings). */
+type LegacyListingRow = {
+  id?: string;
+  shop_name: string;
+  raw_title: string;
+  price_huf: number;
+  stock_status: string;
+  product_url: string;
+  image_url?: string | null;
+  updated_at?: string | null;
+  created_at?: string | null;
+};
+
+function median(values: number[]): number {
+  if (!values.length) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0
+    ? Math.round((sorted[mid - 1] + sorted[mid]) / 2)
+    : sorted[mid];
+}
+
+function canonicalKey(name: string): string {
+  return name
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/pokemon\s*tcg[:\-\s]*/g, " ")
+    .replace(/pokemon[:\-\s]*/g, " ")
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function buildComparisonProduct(
+  productId: string,
+  displayTitle: string,
+  category: string | null,
+  setName: string | null,
+  imageUrl: string,
+  offers: ShopOffer[],
+): ComparisonProduct {
+  const validPrices = offers.map((o) => o.priceHuf).filter((p) => p > 0);
+  const lowestPrice = validPrices.length ? Math.min(...validPrices) : 0;
+  const highestPrice = validPrices.length ? Math.max(...validPrices) : 0;
+  const medianPrice = median(validPrices);
+  const spread = validPrices.length ? highestPrice - lowestPrice : 0;
+  const bestVsMedian =
+    medianPrice > 0 && lowestPrice > 0
+      ? Math.round(((lowestPrice - medianPrice) / medianPrice) * 100)
+      : 0;
+  const score = offers.length * 100 + Math.max(0, -bestVsMedian);
+
+  return {
+    productId,
+    displayTitle,
+    category,
+    setName,
+    imageUrl,
+    lowestPrice,
+    highestPrice,
+    medianPrice,
+    spread,
+    bestVsMedian,
+    score,
+    offers: [...offers].sort((a, b) => a.priceHuf - b.priceHuf),
+  };
+}
+
+/** Normalized schema: products_with_listings view. */
+export function groupNormalizedListings(rows: ListingRow[]): ComparisonProduct[] {
+  const byProduct = new Map<string, ComparisonProduct>();
+
+  for (const row of rows) {
+    if (row.stock_status !== "in_stock") continue;
+
+    const offer: ShopOffer = {
+      listingId: row.listing_id,
+      shopSlug: row.shop_slug,
+      shopName: row.shop_name,
+      rawTitle: row.raw_title,
+      productUrl: row.product_url,
+      priceHuf: row.price_huf,
+      stockStatus: row.stock_status,
+      imageUrl: row.listing_image_url,
+      scrapedAt: row.scraped_at,
+    };
+
+    const existing = byProduct.get(row.product_id);
+    if (!existing) {
+      byProduct.set(
+        row.product_id,
+        buildComparisonProduct(
+          row.product_id,
+          row.canonical_name,
+          row.category,
+          row.set_name,
+          row.product_image_url || row.listing_image_url || "",
+          [offer],
+        ),
+      );
+      continue;
+    }
+
+    existing.offers.push(offer);
+    if (!existing.imageUrl && (row.listing_image_url || row.product_image_url)) {
+      existing.imageUrl = row.product_image_url || row.listing_image_url || "";
+    }
+    const rebuilt = buildComparisonProduct(
+      existing.productId,
+      existing.displayTitle,
+      existing.category,
+      existing.setName,
+      existing.imageUrl,
+      existing.offers,
+    );
+    byProduct.set(row.product_id, rebuilt);
+  }
+
+  return [...byProduct.values()].sort((a, b) => b.score - a.score);
+}
+
+/** Legacy flat shop_listings table (current app behavior). */
+export function groupLegacyListings(rows: LegacyListingRow[]): ComparisonProduct[] {
+  const grouped = new Map<string, ComparisonProduct>();
+
+  for (const row of rows) {
+    if (!String(row.stock_status || "").toUpperCase().includes("IN_STOCK")) continue;
+
+    const key = canonicalKey(row.raw_title);
+    const offer: ShopOffer = {
+      listingId: row.id || `${row.shop_name}-${row.product_url}`,
+      shopSlug: row.shop_name.toLowerCase().replace(/\s+/g, "-"),
+      shopName: row.shop_name,
+      rawTitle: row.raw_title,
+      productUrl: row.product_url,
+      priceHuf: row.price_huf,
+      stockStatus: "in_stock",
+      imageUrl: row.image_url ?? null,
+      scrapedAt: row.updated_at ?? row.created_at ?? null,
+    };
+
+    const existing = grouped.get(key);
+    if (!existing) {
+      grouped.set(
+        key,
+        buildComparisonProduct(key, row.raw_title, null, null, row.image_url || "", [offer]),
+      );
+      continue;
+    }
+
+    existing.offers.push(offer);
+    if (!existing.imageUrl && row.image_url) existing.imageUrl = row.image_url;
+    grouped.set(
+      key,
+      buildComparisonProduct(
+        existing.productId,
+        existing.displayTitle,
+        existing.category,
+        existing.setName,
+        existing.imageUrl,
+        existing.offers,
+      ),
+    );
+  }
+
+  return [...grouped.values()].sort((a, b) => b.score - a.score);
+}
+
+export type ListingsFetchResult = {
+  products: ComparisonProduct[];
+  totalOffers: number;
+  shopCount: number;
+  lastUpdated: string | null;
+  schema: "normalized" | "legacy";
+};
+
+/**
+ * Server-side fetch for API routes.
+ * Set USE_NORMALIZED_SCHEMA=true once migration is complete.
+ */
+export async function fetchComparisonProducts(): Promise<ListingsFetchResult> {
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!supabaseUrl || !serviceRoleKey) {
+    throw new Error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
+  }
+
+  const useNormalized = process.env.USE_NORMALIZED_SCHEMA === "true";
+  const supabase = createClient(supabaseUrl, serviceRoleKey);
+
+  if (useNormalized) {
+    const { data, error } = await supabase
+      .from("products_with_listings")
+      .select("*")
+      .order("updated_at", { ascending: false });
+
+    if (error) throw new Error(error.message);
+
+    const rows = (data ?? []) as ListingRow[];
+    const products = groupNormalizedListings(rows);
+    const shops = new Set(rows.map((r) => r.shop_name));
+    const lastUpdated =
+      rows.map((r) => r.updated_at).filter(Boolean).sort().slice(-1)[0] ?? null;
+
+    return {
+      products,
+      totalOffers: rows.length,
+      shopCount: shops.size,
+      lastUpdated,
+      schema: "normalized",
+    };
+  }
+
+  const listingsTable = process.env.SUPABASE_LISTINGS_TABLE || "shop_listings";
+  const { data, error } = await supabase
+    .from(listingsTable)
+    .select("*")
+    .order("updated_at", { ascending: false });
+
+  if (error) throw new Error(error.message);
+
+  const rows = (data ?? []) as LegacyListingRow[];
+  const products = groupLegacyListings(rows);
+  const shops = new Set(rows.map((r) => r.shop_name).filter(Boolean));
+  const lastUpdated =
+    rows.map((r) => r.updated_at || r.created_at).filter(Boolean).sort().slice(-1)[0] ?? null;
+
+  return {
+    products,
+    totalOffers: rows.length,
+    shopCount: shops.size,
+    lastUpdated,
+    schema: "legacy",
+  };
+}

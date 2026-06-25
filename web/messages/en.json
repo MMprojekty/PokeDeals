@@ -1,0 +1,101 @@
+{
+  "common": {
+    "appName": "PokéDeals",
+    "retry": "Retry",
+    "loading": "Loading listings…",
+    "noData": "No products found with current filters.",
+    "lastUpdated": "Last updated",
+    "notAvailable": "N/A"
+  },
+  "nav": {
+    "terms": "Terms",
+    "privacy": "Privacy",
+    "home": "Home"
+  },
+  "home": {
+    "pageTitle": "Pokemon TCG Prices Across Hungarian Shops",
+    "pageSubtitle": "Tracking {products} unique products across {offers} live offers.",
+    "comparePrices": "Compare Prices",
+    "trendingNow": "Trending Now",
+    "bestVsMedian": "Best Deal vs Median",
+    "back": "Back to Dashboard",
+    "comparing": "Comparing",
+    "storeOffers": "store offers",
+    "viewDeal": "View deal",
+    "listingsLoadError": "Could not load listings."
+  },
+  "stock": {
+    "inStock": "In Stock",
+    "outOfStock": "Out of Stock",
+    "preorder": "Pre-order"
+  },
+  "categories": {
+    "all": "All",
+    "boosterBoxes": "Booster Boxes",
+    "bundles": "Bundles",
+    "boosterPacks": "Booster Packs",
+    "etbs": "ETBs",
+    "tinsBlisters": "Tins / Blisters",
+    "boosterBox": "Booster Box",
+    "eliteTrainerBox": "Elite Trainer Box",
+    "boosterPack": "Booster Pack",
+    "boosterBundle": "Booster Bundle",
+    "tin": "Tin",
+    "blister": "Blister",
+    "collectionBox": "Collection Box",
+    "starterDeck": "Starter Deck"
+  },
+  "pricing": {
+    "marketMedian": "Market Median",
+    "lowest": "Lowest",
+    "median": "Median",
+    "priceGap": "Price Gap",
+    "delta": "Delta",
+    "offers": "Offers",
+    "offersAndMedian": "Offers / Median",
+    "spread": "Price Gap"
+  },
+  "table": {
+    "headers": {
+      "rank": "#",
+      "product": "Product",
+      "lowestPrice": "Lowest Price",
+      "median": "Median",
+      "priceGap": "Price Gap",
+      "delta": "Delta",
+      "offers": "Offers"
+    },
+    "tooltips": {
+      "median": "The middle price among all current offers.",
+      "spread": "Gap between the highest and lowest listed prices.",
+      "delta": "How much the best price differs from median (in %). Negative means better than median."
+    }
+  },
+  "bento": {
+    "inStockProducts": "In-stock products",
+    "shops": "Shops",
+    "inStockOffers": "In-stock offers",
+    "metricsTitle": "What the numbers mean",
+    "metricOffers": "Offers = in-stock shop offers",
+    "metricMedian": "Median = middle price among offers",
+    "metricGap": "Price Gap = highest - lowest price",
+    "metricDelta": "Delta = best vs median (%)"
+  },
+  "filters": {
+    "allLanguages": "All languages",
+    "englishOnly": "English only"
+  },
+  "health": {
+    "fresh": "Fresh data",
+    "stale": "Stale / check pipeline",
+    "empty": "No rows in database",
+    "unknown": "Status check failed",
+    "tooltipPrefix": "Ops health",
+    "loadFailed": "Could not load /api/health.",
+    "loading": "Loading health…",
+    "tooltipDetail": "{prefix}: {age} min since last scrape · {inStock} in-stock rows / {total} rows total"
+  },
+  "footer": {
+    "disclaimer": "Prices & availability are set by merchants — always verify before buying."
+  }
+}

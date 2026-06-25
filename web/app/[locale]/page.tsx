@@ -1,0 +1,677 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
+import { usePathname, useRouter } from "@/i18n/navigation";
+
+type ShopOffer = {
+  shop_name: string;
+  price_huf: number;
+  product_url: string;
+  raw_title?: string;
+  image_url?: string | null;
+};
+
+type ComparisonRow = {
+  displayTitle: string;
+  lowestPrice: number;
+  highestPrice: number;
+  medianPrice: number;
+  spread: number;
+  bestVsMedian: number;
+  score: number;
+  imageUrl: string;
+  offers: ShopOffer[];
+};
+
+export default function Home() {
+  const t = useTranslations();
+  const locale = useLocale();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  const [products, setProducts] = useState<ComparisonRow[]>([]);
+  const [activeFilter, setActiveFilter] = useState("all");
+  const [languageFilter, setLanguageFilter] = useState<"all" | "english">("all");
+  const [totalOffers, setTotalOffers] = useState(0);
+  const [shopsCount, setShopsCount] = useState(0);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [listingsLoading, setListingsLoading] = useState(true);
+  const [listingsError, setListingsError] = useState<string | null>(null);
+  const [healthInfo, setHealthInfo] = useState<{
+    badgeLevel: "green" | "amber" | "red";
+    ageMinutes: number | null;
+    totalInStockRows: number;
+    totalRows: number;
+    stale: boolean;
+  } | null>(null);
+  const [healthFetchFailed, setHealthFetchFailed] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<ComparisonRow | null>(null);
+
+  async function fetchHealthSnapshot() {
+    try {
+      const response = await fetch("/api/health", { cache: "no-store" });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setHealthFetchFailed(true);
+        setHealthInfo(null);
+        return;
+      }
+      setHealthFetchFailed(false);
+      const badgeLevel = (payload?.badgeLevel as "green" | "amber" | "red") || "amber";
+      setHealthInfo({
+        badgeLevel,
+        ageMinutes: typeof payload.ageMinutes === "number" ? payload.ageMinutes : null,
+        totalInStockRows: Number(payload.totalInStockRows) || 0,
+        totalRows: Number(payload.totalRows) || 0,
+        stale: Boolean(payload.stale),
+      });
+    } catch {
+      setHealthFetchFailed(true);
+      setHealthInfo(null);
+    }
+  }
+
+  async function fetchAndGroupData() {
+    setListingsLoading(true);
+    setListingsError(null);
+    try {
+      const response = await fetch("/api/listings");
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) {
+        console.error("Error fetching data:", response.statusText);
+        setListingsError(t("home.listingsLoadError"));
+        setProducts([]);
+        setTotalOffers(0);
+        setShopsCount(0);
+        setLastUpdated(null);
+        return;
+      }
+
+      const data = payload?.data;
+      if (!Array.isArray(data)) {
+        console.error("Error fetching data: invalid response payload");
+        setListingsError(t("home.listingsLoadError"));
+        setProducts([]);
+        return;
+      }
+
+      setProducts(data);
+      setTotalOffers(Number(payload?.meta?.totalOffers) || data.length);
+      setShopsCount(Number(payload?.meta?.shopCount) || 0);
+      const ts = payload?.meta?.lastUpdated;
+      setLastUpdated(ts ? new Date(ts) : new Date());
+    } catch (e) {
+      console.error(e);
+      setListingsError(t("home.listingsLoadError"));
+      setProducts([]);
+    } finally {
+      setListingsLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    void fetchHealthSnapshot();
+    void fetchAndGroupData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const formatPrice = (price: number) => {
+    if (!price || price === Infinity) return t("common.notAvailable");
+    return new Intl.NumberFormat("hu-HU").format(price) + " Ft";
+  };
+
+  const formatLastUpdated = (value: Date | null) => {
+    if (!value) return "-";
+    return value.toLocaleString(locale === "hu" ? "hu-HU" : "en-GB", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const healthTooltip = () => {
+    if (healthFetchFailed) return t("health.loadFailed");
+    if (!healthInfo) return t("health.loading");
+    const age = healthInfo.ageMinutes !== null ? String(healthInfo.ageMinutes) : "—";
+    return t("health.tooltipDetail", {
+      prefix: t("health.tooltipPrefix"),
+      age,
+      inStock: healthInfo.totalInStockRows,
+      total: healthInfo.totalRows,
+    });
+  };
+
+  const healthBadgeLabelText = () => {
+    if (healthFetchFailed) return t("health.unknown");
+    if (!healthInfo) return "…";
+    if (healthInfo.badgeLevel === "red") return t("health.empty");
+    if (healthInfo.badgeLevel === "amber") return t("health.stale");
+    return t("health.fresh");
+  };
+
+  const healthDotClass = healthFetchFailed
+    ? "bg-red-500"
+    : !healthInfo
+      ? "bg-gray-300"
+      : healthInfo.badgeLevel === "red"
+        ? "bg-red-500"
+        : healthInfo.badgeLevel === "amber"
+          ? "bg-amber-500"
+          : "bg-emerald-500";
+
+  const healthPillClass = healthFetchFailed
+    ? "border-red-200 bg-red-50 text-red-900"
+    : !healthInfo
+      ? "border-gray-200 bg-white text-gray-500"
+      : healthInfo.badgeLevel === "red"
+        ? "border-red-200 bg-red-50 text-red-900"
+        : healthInfo.badgeLevel === "amber"
+          ? "border-amber-200 bg-amber-50 text-amber-900"
+          : "border-emerald-200 bg-emerald-50 text-emerald-900";
+
+  const trendingProducts = products.slice(0, 5);
+  const remainingProducts = products.slice(5);
+
+  const filteredProducts = remainingProducts.filter((p) => {
+    const title = p.displayTitle.toLowerCase();
+
+    const isEnglishProduct = (value: string) => {
+      const text = value
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+      const nonEnglishMarkers = [
+        "japan",
+        "japanese",
+        "japan ",
+        "korean",
+        "koreai",
+        "chinese",
+        "kinai",
+        "deutsch",
+        "french",
+        "francia",
+        "german",
+        "nemet",
+      ];
+      return !nonEnglishMarkers.some((marker) => text.includes(marker));
+    };
+
+    if (languageFilter === "english" && !isEnglishProduct(p.displayTitle)) {
+      return false;
+    }
+
+    if (activeFilter === "boxes") return title.includes("booster box") || title.includes("display");
+    if (activeFilter === "bundles") return title.includes("booster bundle") || title.includes("bundle");
+    if (activeFilter === "packs")
+      return title.includes("booster pack") || (title.includes("booster") && title.includes("pack"));
+    if (activeFilter === "etbs") return title.includes("elite trainer box") || title.includes("etb");
+    if (activeFilter === "tins") return title.includes("tin") || title.includes("blister");
+    return true;
+  });
+
+  const bestDeals = [...products]
+    .filter((p) => p.bestVsMedian < 0)
+    .sort((a, b) => a.bestVsMedian - b.bestVsMedian)
+    .slice(0, 5);
+  const topWidgetCols = "grid-cols-[20px_32px_minmax(0,1fr)_170px_92px_52px]";
+
+  const btnAct = "bg-[#a63c5e] text-white border-[#a63c5e]";
+  const btnIna = "bg-white text-gray-700 border-gray-200 hover:bg-gray-50";
+
+  if (selectedProduct) {
+    return (
+      <main className="min-h-screen bg-[#f1f0ec] text-gray-900 font-sans p-6 md:p-10">
+        <div className="max-w-6xl mx-auto">
+          <button
+            onClick={() => setSelectedProduct(null)}
+            className="text-[#4b3585] font-bold text-sm flex items-center gap-2 mb-6 hover:opacity-80 transition-opacity uppercase tracking-wider"
+          >
+            ← {t("home.back")}
+          </button>
+
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col md:flex-row">
+            <div className="bg-gray-50 p-10 md:w-1/2 flex items-center justify-center border-r border-gray-100">
+              {selectedProduct.imageUrl ? (
+                <img
+                  src={selectedProduct.imageUrl}
+                  alt={selectedProduct.displayTitle}
+                  className="max-h-[400px] object-contain drop-shadow-xl hover:scale-105 transition-transform duration-300"
+                />
+              ) : (
+                <div className="w-full h-64 bg-gray-200 rounded flex items-center justify-center text-gray-400 font-bold">
+                  NO IMAGE
+                </div>
+              )}
+            </div>
+
+            <div className="p-8 md:p-12 md:w-1/2 flex flex-col">
+              <h1 className="text-3xl font-extrabold text-gray-900 mb-4">{selectedProduct.displayTitle}</h1>
+
+              <div className="flex items-center gap-4 mb-8">
+                <span className="text-xs font-bold text-[#4b3585] uppercase tracking-wider">
+                  {t("home.comparing")} {selectedProduct.offers.length} {t("home.storeOffers")}
+                </span>
+                {selectedProduct.medianPrice > 0 && (
+                  <span className="bg-gray-100 text-gray-600 text-xs font-bold px-3 py-1 rounded-full">
+                    {t("pricing.marketMedian")}: {formatPrice(selectedProduct.medianPrice)}
+                  </span>
+                )}
+              </div>
+
+              <div className="w-full h-px bg-gray-100 mb-6" />
+
+              <div className="flex-1 overflow-y-auto space-y-6 pr-4">
+                {selectedProduct.offers.map((offer, idx) => (
+                  <div
+                    key={idx}
+                    className="flex justify-between items-center group bg-gray-50/80 border border-gray-100 rounded-xl px-4 py-3"
+                  >
+                    <div>
+                      <h3 className="font-bold text-lg text-gray-900 group-hover:text-[#a63c5e] transition-colors">
+                        {offer.shop_name}
+                      </h3>
+                      <p className="text-[10px] font-bold text-green-500 uppercase tracking-wider mt-1 flex items-center gap-1">
+                        <span className="w-2 h-2 rounded-full bg-green-500 block"></span> {t("stock.inStock")}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-extrabold text-xl text-gray-900">{formatPrice(offer.price_huf)}</div>
+                      <a
+                        href={offer.product_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-[11px] font-bold text-[#a63c5e] uppercase tracking-wider mt-1 block hover:underline"
+                      >
+                        {t("home.viewDeal")} →
+                      </a>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  return (
+    <main className="min-h-screen bg-[#f1f0ec] text-gray-900 font-sans p-6 md:p-10">
+      <div className="max-w-7xl mx-auto flex justify-between items-center mb-10">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-full bg-[#a63c5e] flex items-center justify-center text-white font-bold text-xl">
+            P
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight">{t("common.appName")}</h1>
+        </div>
+
+        <div className="flex items-center gap-3 flex-wrap justify-end">
+          <div className="hidden md:flex items-center gap-1 text-xs font-semibold text-gray-500 bg-white border border-gray-200 rounded-lg px-3 py-2">
+            <span>🕒</span>
+            <span>
+              {t("common.lastUpdated")}: {formatLastUpdated(lastUpdated)}
+            </span>
+          </div>
+          <div
+            title={healthTooltip()}
+            className={`hidden md:inline-flex items-center gap-2 text-xs font-bold rounded-lg px-3 py-2 border cursor-default ${healthPillClass}`}
+          >
+            <span className={`h-2 w-2 rounded-full shrink-0 ${healthDotClass}`} aria-hidden />
+            <span className="whitespace-nowrap">{healthBadgeLabelText()}</span>
+          </div>
+          <div className="flex gap-2 bg-white rounded-lg p-1 shadow-sm border border-gray-200">
+            <button
+              onClick={() => router.replace(pathname, { locale: "en" })}
+              className={`px-3 py-1 rounded-md text-sm font-bold ${locale === "en" ? "bg-[#a63c5e] text-white" : "text-gray-500"}`}
+            >
+              EN
+            </button>
+            <button
+              onClick={() => router.replace(pathname, { locale: "hu" })}
+              className={`px-3 py-1 rounded-md text-sm font-bold ${locale === "hu" ? "bg-[#a63c5e] text-white" : "text-gray-500"}`}
+            >
+              HU
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto">
+        {listingsError ? (
+          <div className="mb-6 flex flex-col gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900 sm:flex-row sm:items-center">
+            <span className="flex-1 font-semibold">{listingsError}</span>
+            <button
+              type="button"
+              onClick={() => {
+                void fetchHealthSnapshot();
+                void fetchAndGroupData();
+              }}
+              className="shrink-0 rounded-lg bg-red-900 px-4 py-2 text-xs font-bold uppercase tracking-wide text-white hover:bg-red-800"
+            >
+              {t("common.retry")}
+            </button>
+          </div>
+        ) : null}
+        <h2 className="text-3xl font-bold mb-2">{t("home.pageTitle")}</h2>
+        <p className="text-gray-500 mb-8 text-sm">
+          {listingsLoading && products.length === 0
+            ? t("common.loading")
+            : t("home.pageSubtitle", {
+                offers: totalOffers,
+                products: products.length,
+              })}
+        </p>
+        <p className="md:hidden text-xs font-semibold text-gray-500 mb-4 flex flex-wrap items-center gap-2">
+          <span>
+            🕒 {t("common.lastUpdated")}: {formatLastUpdated(lastUpdated)}
+          </span>
+          <span
+            title={healthTooltip()}
+            className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 cursor-default ${healthPillClass}`}
+          >
+            <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${healthDotClass}`} aria-hidden />
+            {healthBadgeLabelText()}
+          </span>
+        </p>
+      </div>
+
+      {listingsLoading && products.length === 0 ? (
+        <div className="max-w-7xl mx-auto py-24 text-center text-gray-600 font-semibold">{t("common.loading")}</div>
+      ) : (
+        <>
+          <div className="mx-auto max-w-[92rem]">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+              <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+                <h3 className="font-bold text-lg mb-4 flex items-center gap-2">🔥 {t("home.trendingNow")}</h3>
+                <div
+                  className={`grid ${topWidgetCols} items-center gap-2 px-3 pb-2 mb-2 border-b border-gray-100 text-[11px] font-bold text-gray-400 uppercase tracking-wider`}
+                >
+                  <div className="text-center">{t("table.headers.rank")}</div>
+                  <div />
+                  <div>{t("table.headers.product")}</div>
+                  <div className="text-right">{t("pricing.offersAndMedian")}</div>
+                  <div className="text-right">{t("pricing.lowest")}</div>
+                  <div className="text-right">{t("pricing.delta")}</div>
+                </div>
+                <div className="space-y-2.5">
+                  {trendingProducts.map((prod, idx) => (
+                    <div
+                      key={idx}
+                      onClick={() => setSelectedProduct(prod)}
+                      className="cursor-pointer rounded-lg border border-gray-100 bg-white hover:bg-gray-50 hover:shadow-sm transition-all px-3 py-2"
+                    >
+                      <div className={`grid ${topWidgetCols} items-center gap-2`}>
+                        <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-white border border-gray-200 text-[10px] font-bold text-gray-600">
+                          {idx + 1}
+                        </span>
+                        <div className="w-8 h-8 flex-shrink-0 flex items-center justify-center bg-white rounded-md border border-gray-100">
+                          {prod.imageUrl ? (
+                            <img
+                              src={prod.imageUrl}
+                              alt={prod.displayTitle}
+                              className="max-h-full max-w-full object-contain"
+                            />
+                          ) : (
+                            <div className="w-6 h-6 bg-gray-100 rounded" />
+                          )}
+                        </div>
+                        <p className="text-sm font-semibold line-clamp-1">{prod.displayTitle}</p>
+                        <p className="text-xs text-gray-500 whitespace-nowrap overflow-hidden text-ellipsis text-right">
+                          {t("pricing.offers")}: {prod.offers.length} · {t("pricing.marketMedian")}:{" "}
+                          {formatPrice(prod.medianPrice)}
+                        </p>
+                        <p className="font-extrabold text-sm whitespace-nowrap text-right min-w-[82px]">
+                          {formatPrice(prod.lowestPrice)}
+                        </p>
+                        <span
+                          className={`text-xs font-bold text-right min-w-[38px] ${prod.bestVsMedian > 0 ? "text-red-500" : prod.bestVsMedian < 0 ? "text-green-500" : "text-gray-300"}`}
+                        >
+                          {prod.bestVsMedian !== 0 ? `${prod.bestVsMedian > 0 ? "+" : ""}${prod.bestVsMedian}%` : "-"}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+                <h3 className="font-bold text-lg mb-4 flex items-center gap-2">🚀 {t("home.bestVsMedian")}</h3>
+                <div
+                  className={`grid ${topWidgetCols} items-center gap-2 px-3 pb-2 mb-2 border-b border-gray-100 text-[11px] font-bold text-gray-400 uppercase tracking-wider`}
+                >
+                  <div className="text-center">{t("table.headers.rank")}</div>
+                  <div />
+                  <div>{t("table.headers.product")}</div>
+                  <div className="text-right">{t("pricing.spread")}</div>
+                  <div className="text-right">{t("pricing.lowest")}</div>
+                  <div className="text-right">{t("pricing.delta")}</div>
+                </div>
+                <div className="space-y-2.5">
+                  {bestDeals.map((prod, idx) => (
+                    <div
+                      key={idx}
+                      onClick={() => setSelectedProduct(prod)}
+                      className="cursor-pointer rounded-lg border border-gray-100 bg-white hover:bg-gray-50 hover:shadow-sm transition-all px-3 py-2"
+                    >
+                      <div className={`grid ${topWidgetCols} items-center gap-2`}>
+                        <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-white border border-gray-200 text-[10px] font-bold text-gray-600">
+                          {idx + 1}
+                        </span>
+                        <div className="w-8 h-8 flex-shrink-0 flex items-center justify-center bg-white rounded-md border border-gray-100">
+                          {prod.imageUrl ? (
+                            <img
+                              src={prod.imageUrl}
+                              alt={prod.displayTitle}
+                              className="max-h-full max-w-full object-contain"
+                            />
+                          ) : (
+                            <div className="w-6 h-6 bg-gray-100 rounded" />
+                          )}
+                        </div>
+                        <p className="text-sm font-semibold line-clamp-1">{prod.displayTitle}</p>
+                        <p className="text-xs text-gray-500 whitespace-nowrap overflow-hidden text-ellipsis text-right">
+                          {t("pricing.spread")}: {prod.spread === 0 ? "0 Ft" : formatPrice(prod.spread)}
+                        </p>
+                        <p className="font-extrabold text-sm whitespace-nowrap text-right min-w-[82px]">
+                          {formatPrice(prod.lowestPrice)}
+                        </p>
+                        <span className="text-xs font-bold text-gray-700 text-right min-w-[38px]">
+                          {prod.bestVsMedian}%
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="max-w-7xl mx-auto mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
+                <div className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t("bento.inStockProducts")}</div>
+                <div className="text-2xl font-extrabold text-gray-900 mt-2">{products.length}</div>
+              </div>
+              <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
+                <div className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t("bento.shops")}</div>
+                <div className="text-2xl font-extrabold text-gray-900 mt-2">{shopsCount}</div>
+              </div>
+              <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
+                <div className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t("bento.inStockOffers")}</div>
+                <div className="text-2xl font-extrabold text-gray-900 mt-2">{totalOffers}</div>
+              </div>
+              <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm sm:col-span-2 lg:col-span-1">
+                <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{t("bento.metricsTitle")}</div>
+                <div className="text-xs text-gray-600 space-y-1">
+                  <div>• {t("bento.metricOffers")}</div>
+                  <div>• {t("bento.metricMedian")}</div>
+                  <div>• {t("bento.metricGap")}</div>
+                  <div>• {t("bento.metricDelta")}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="max-w-7xl mx-auto">
+            <div className="flex flex-wrap gap-2 overflow-x-auto pb-4 mb-4 scrollbar-hide">
+              <button
+                onClick={() => setActiveFilter("all")}
+                className={`whitespace-nowrap px-4 py-1.5 rounded-lg text-sm font-bold transition-colors border ${activeFilter === "all" ? btnAct : btnIna}`}
+              >
+                {t("categories.all")}
+              </button>
+              <button
+                onClick={() => setActiveFilter("boxes")}
+                className={`whitespace-nowrap px-4 py-1.5 rounded-lg text-sm font-bold transition-colors border ${activeFilter === "boxes" ? btnAct : btnIna}`}
+              >
+                {t("categories.boosterBoxes")}
+              </button>
+              <button
+                onClick={() => setActiveFilter("bundles")}
+                className={`whitespace-nowrap px-4 py-1.5 rounded-lg text-sm font-bold transition-colors border ${activeFilter === "bundles" ? btnAct : btnIna}`}
+              >
+                {t("categories.bundles")}
+              </button>
+              <button
+                onClick={() => setActiveFilter("packs")}
+                className={`whitespace-nowrap px-4 py-1.5 rounded-lg text-sm font-bold transition-colors border ${activeFilter === "packs" ? btnAct : btnIna}`}
+              >
+                {t("categories.boosterPacks")}
+              </button>
+              <button
+                onClick={() => setActiveFilter("etbs")}
+                className={`whitespace-nowrap px-4 py-1.5 rounded-lg text-sm font-bold transition-colors border ${activeFilter === "etbs" ? btnAct : btnIna}`}
+              >
+                {t("categories.etbs")}
+              </button>
+              <button
+                onClick={() => setActiveFilter("tins")}
+                className={`whitespace-nowrap px-4 py-1.5 rounded-lg text-sm font-bold transition-colors border ${activeFilter === "tins" ? btnAct : btnIna}`}
+              >
+                {t("categories.tinsBlisters")}
+              </button>
+              <div className="w-px h-8 bg-gray-200 mx-1" />
+              <button
+                onClick={() => setLanguageFilter("all")}
+                className={`whitespace-nowrap px-4 py-1.5 rounded-lg text-sm font-bold transition-colors border ${languageFilter === "all" ? btnAct : btnIna}`}
+              >
+                {t("filters.allLanguages")}
+              </button>
+              <button
+                onClick={() => setLanguageFilter("english")}
+                className={`whitespace-nowrap px-4 py-1.5 rounded-lg text-sm font-bold transition-colors border ${languageFilter === "english" ? btnAct : btnIna}`}
+              >
+                {t("filters.englishOnly")}
+              </button>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-white border-b border-gray-100 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                      <th className="p-4 w-12 text-center">{t("table.headers.rank")}</th>
+                      <th className="p-4">{t("table.headers.product")}</th>
+                      <th className="p-4 text-right">{t("table.headers.lowestPrice")}</th>
+                      <th className="p-4 text-right whitespace-nowrap" title={t("table.tooltips.median")}>
+                        <span className="inline-flex items-center gap-1 justify-end">
+                          {t("table.headers.median")}
+                          <span
+                            className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-gray-300 text-[10px] font-bold text-gray-400 cursor-help"
+                            title={t("table.tooltips.median")}
+                          >
+                            i
+                          </span>
+                        </span>
+                      </th>
+                      <th className="p-4 text-right whitespace-nowrap" title={t("table.tooltips.spread")}>
+                        <span className="inline-flex items-center gap-1 justify-end">
+                          {t("table.headers.priceGap")}
+                          <span
+                            className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-gray-300 text-[10px] font-bold text-gray-400 cursor-help"
+                            title={t("table.tooltips.spread")}
+                          >
+                            i
+                          </span>
+                        </span>
+                      </th>
+                      <th className="p-4 text-right whitespace-nowrap" title={t("table.tooltips.delta")}>
+                        <span className="inline-flex items-center gap-1 justify-end">
+                          {t("table.headers.delta")}
+                          <span
+                            className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-gray-300 text-[10px] font-bold text-gray-400 cursor-help"
+                            title={t("table.tooltips.delta")}
+                          >
+                            i
+                          </span>
+                        </span>
+                      </th>
+                      <th className="p-4 text-center">{t("table.headers.offers")}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {filteredProducts.map((prod, idx) => (
+                      <tr
+                        key={idx}
+                        onClick={() => setSelectedProduct(prod)}
+                        className="hover:bg-gray-50 transition-colors cursor-pointer group"
+                      >
+                        <td className="p-4 text-center text-sm text-gray-400">{idx + 1}</td>
+                        <td className="p-4 flex items-center gap-4">
+                          <div className="w-10 h-10 flex-shrink-0 flex items-center justify-center">
+                            {prod.imageUrl ? (
+                              <img
+                                src={prod.imageUrl}
+                                alt={prod.displayTitle}
+                                className="max-h-full max-w-full object-contain"
+                              />
+                            ) : (
+                              <div className="w-10 h-10 bg-gray-100 rounded" />
+                            )}
+                          </div>
+                          <span className="font-bold text-sm text-[#4b3585] group-hover:text-[#a63c5e] transition-colors">
+                            {prod.displayTitle}
+                          </span>
+                        </td>
+                        <td className="p-4 text-right font-bold text-sm whitespace-nowrap">
+                          {formatPrice(prod.lowestPrice)}
+                        </td>
+                        <td className="p-4 text-right text-sm text-gray-500 whitespace-nowrap">
+                          {formatPrice(prod.medianPrice)}
+                        </td>
+                        <td className="p-4 text-right text-sm text-gray-500 whitespace-nowrap">
+                          {prod.spread === 0 ? "0 Ft" : formatPrice(prod.spread)}
+                        </td>
+                        <td
+                          className={`p-4 text-right text-sm font-bold ${prod.bestVsMedian > 0 ? "text-red-500" : prod.bestVsMedian < 0 ? "text-green-500" : "text-gray-300"}`}
+                        >
+                          {prod.bestVsMedian !== 0 ? `${prod.bestVsMedian > 0 ? "+" : ""}${prod.bestVsMedian}%` : "-"}
+                        </td>
+                        <td className="p-4 text-center">
+                          <span className="inline-flex items-center justify-center w-6 h-6 rounded bg-gray-100 text-xs font-bold text-gray-700">
+                            {prod.offers.length}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                    {filteredProducts.length === 0 && (
+                      <tr>
+                        <td colSpan={7} className="p-8 text-center text-sm text-gray-500">
+                          {t("common.noData")}
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+    </main>
+  );
+}

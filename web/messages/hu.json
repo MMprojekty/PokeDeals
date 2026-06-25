@@ -1,0 +1,101 @@
+{
+  "common": {
+    "appName": "PokéDeals",
+    "retry": "Újra",
+    "loading": "Adatok betöltése…",
+    "noData": "Nincs termék az aktuális szűrőkkel.",
+    "lastUpdated": "Utolsó frissítés",
+    "notAvailable": "N/A"
+  },
+  "nav": {
+    "terms": "ÁSZF",
+    "privacy": "Adatvédelem",
+    "home": "Főoldal"
+  },
+  "home": {
+    "pageTitle": "Pokemon TCG árak magyar webshopokban",
+    "pageSubtitle": "{offers} aktív ajánlat, {products} egyedi termékhez.",
+    "comparePrices": "Árak összehasonlítása",
+    "trendingNow": "Felkapott most",
+    "bestVsMedian": "Legjobb ajánlat a mediánhoz",
+    "back": "Vissza a főoldalra",
+    "comparing": "Összehasonlítva",
+    "storeOffers": "bolti ajánlat",
+    "viewDeal": "Ajánlat megnyitása",
+    "listingsLoadError": "Nem sikerült betölteni a listázást."
+  },
+  "stock": {
+    "inStock": "Raktáron",
+    "outOfStock": "Nincs raktáron",
+    "preorder": "Előrendelés"
+  },
+  "categories": {
+    "all": "Összes",
+    "boosterBoxes": "Booster Boxok",
+    "bundles": "Bundle-ök",
+    "boosterPacks": "Booster csomagok",
+    "etbs": "ETB-k",
+    "tinsBlisters": "Tinek / Bliszterek",
+    "boosterBox": "Booster doboz",
+    "eliteTrainerBox": "Elite Trainer Box",
+    "boosterPack": "Booster csomag",
+    "boosterBundle": "Booster bundle",
+    "tin": "Tin",
+    "blister": "Bliszter",
+    "collectionBox": "Kollekciós doboz",
+    "starterDeck": "Kezdő pakli"
+  },
+  "pricing": {
+    "marketMedian": "Piaci medián",
+    "lowest": "Legjobb",
+    "median": "Medián",
+    "priceGap": "Árrés",
+    "delta": "Eltérés",
+    "offers": "Ajánlat",
+    "offersAndMedian": "Ajánlat / Medián",
+    "spread": "Árrés"
+  },
+  "table": {
+    "headers": {
+      "rank": "#",
+      "product": "Termék",
+      "lowestPrice": "Legjobb ár",
+      "median": "Medián",
+      "priceGap": "Árrés",
+      "delta": "Eltérés",
+      "offers": "Ajánlatok"
+    },
+    "tooltips": {
+      "median": "A medián ár (a középső ár) az összes aktuális ajánlat alapján.",
+      "spread": "A legmagasabb és legalacsonyabb bolti ár közti különbség.",
+      "delta": "A legjobb ár eltérése a mediánhoz képest (%). Negatív érték = jobb a mediánnál."
+    }
+  },
+  "bento": {
+    "inStockProducts": "Raktáron lévő termékek",
+    "shops": "Boltok",
+    "inStockOffers": "Raktáron lévő ajánlatok",
+    "metricsTitle": "Mit jelentenek a számok?",
+    "metricOffers": "Ajánlatok = raktáron lévő bolti ajánlatok száma",
+    "metricMedian": "Medián = a középső ár az aktuális ajánlatok között",
+    "metricGap": "Árrés = legmagasabb mínusz legalacsonyabb ár",
+    "metricDelta": "Eltérés (Delta) = legjobb ár vs medián (%)"
+  },
+  "filters": {
+    "allLanguages": "Minden nyelv",
+    "englishOnly": "Csak angol"
+  },
+  "health": {
+    "fresh": "Friss adat",
+    "stale": "Régi / ellenőrizd a folyamatot",
+    "empty": "Nincs sor az adatbázisban",
+    "unknown": "Státusz nem elérhető",
+    "tooltipPrefix": "Rendszer állapot",
+    "loadFailed": "Nem sikerült elérni az /api/health végpontot.",
+    "loading": "Állapot betöltése…",
+    "tooltipDetail": "{prefix}: {age} perce futott az utolsó feltöltés · {inStock} raktári sor / {total} sor összesen"
+  },
+  "footer": {
+    "disclaimer": "Az árakat és a készletet a boltok határozzák meg — vásárlás előtt mindig ellenőrizd."
+  }
+}
