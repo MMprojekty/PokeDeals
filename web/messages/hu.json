@@ -3,7 +3,7 @@
     "appName": "PokéDeals",
     "retry": "Újrapróbálkozás",
     "loading": "Listák betöltése…",
-    "noData": "Jelenlegi szűrők mellett nem található termék.",
+    "noData": "Nincs termék a jelenlegi szűrők alapján.",
     "lastUpdated": "Utolsó frissítés",
     "notAvailable": "N/A"
   },
@@ -14,8 +14,8 @@
   },
   "home": {
     "pageTitle": "Pokemon TCG Árak Magyar Boltjaiban",
-    "pageSubtitle": "Követjük a {products} egyedi terméket {offers} élő ajánlatban.",
-    "comparePrices": "Árak összehasonlítása",
+    "pageSubtitle": "{offers} élő ajánlat között {products} egyedi termék nyomon követése.",
+    "comparePrices": "Árak Összehasonlítása",
     "trendingNow": "Jelenleg népszerű",
     "bestVsMedian": "Legjobb ajánlat vs Medián",
     "back": "Vissza a főoldalra",
@@ -67,7 +67,7 @@
     },
     "tooltips": {
       "median": "Az összes aktuális ajánlat közötti középső ár.",
-      "spread": "Különbség a legmagasabb és legalacsonyabb ár között.",
+      "spread": "Különbség a legmagasabb és legalacsonyabb árak között.",
       "delta": "Mennyivel tér el a legjobb ár a mediántól (százalékban). Negatív érték jobb, mint a medián."
     },
     "sort": {
@@ -89,7 +89,7 @@
     "metricMedian": "Medián = középső ár az ajánlatok között",
     "metricGap": "Árkülönbség = legmagasabb - legalacsonyabb ár",
     "metricDelta": "Delta = legjobb vs medián (%)",
-    "vsLastUpdate": "az előző frissítéshez képest"
+    "vsLastUpdate": "vs utolsó frissítés"
   },
   "filters": {
     "allLanguages": "Összes nyelv",
@@ -101,9 +101,9 @@
     "empty": "Nincsenek sorok az adatbázisban",
     "unknown": "Állapotellenőrzés sikertelen",
     "tooltipPrefix": "Ops állapot",
-    "loadFailed": "Nem sikerült betölteni az /api/health-t.",
+    "loadFailed": "Nem sikerült betölteni /api/health.",
     "loading": "Állapot betöltése…",
-    "tooltipDetail": "{prefix}: {age} perc telt el az utolsó lekérdezés óta · {inStock} készleten lévő sor / {total} sor összesen"
+    "tooltipDetail": "{prefix}: {age} perc telt el az utolsó lekérdezés óta · {inStock} készleten lévő sor / {total} összes sor"
   },
   "footer": {
     "disclaimer": "Az árakat és a rendelkezésre állást a kereskedők állítják be — mindig ellenőrizd vásárlás előtt."
