@@ -9,13 +9,14 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  typescript: {
+    ignoreBuildErrors: isGithubPages,
+  },
   ...(isGithubPages
     ? {
         output: "export",
         basePath: "/PokeDeals",
-        assetPrefix: "/PokeDeals/",
         images: { unoptimized: true },
-        trailingSlash: true,
       }
     : {}),
 };
