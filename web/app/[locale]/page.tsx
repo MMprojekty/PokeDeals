@@ -23,11 +23,13 @@ export default async function HomePage({
   setRequestLocale(locale);
 
   let initialData = null;
-  try {
-    const result = await fetchComparisonProducts();
-    initialData = toClientPayload(result);
-  } catch {
-    initialData = null;
+  if (process.env.GITHUB_PAGES !== "true") {
+    try {
+      const result = await fetchComparisonProducts();
+      initialData = toClientPayload(result);
+    } catch {
+      initialData = null;
+    }
   }
 
   return (
