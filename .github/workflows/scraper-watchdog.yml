@@ -1,0 +1,45 @@
+name: Scraper watchdog
+
+on:
+  schedule:
+    # Backup check 20 min after the main hourly scrape slot.
+    - cron: "25 * * * *"
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  check-and-trigger:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Check data age in Supabase
+        id: stale
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_LISTINGS_TABLE: shop_listings
+          SCRAPE_STALE_MINUTES: "65"
+        run: python3 scripts/check_scrape_stale.py
+
+      - name: Trigger scraper if data is stale
+        if: steps.stale.outputs.stale == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            core.info(`Data is ${process.env.AGE} minutes old — triggering scraper.`);
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: "scraper.yml",
+              ref: "main",
+            });
+        env:
+          AGE: ${{ steps.stale.outputs.age_minutes }}
+
+      - name: Data is fresh
+        if: steps.stale.outputs.stale != 'true'
+        run: echo "Data age is ${{ steps.stale.outputs.age_minutes }} min — no scrape needed."

@@ -2,13 +2,13 @@ name: Scrape shop prices
 
 on:
   schedule:
-    # Every hour at :00 UTC
-    - cron: "0 * * * *"
+    # Every hour at :05 UTC (offset avoids GitHub queue drops at :00).
+    - cron: "5 * * * *"
   workflow_dispatch:
 
 concurrency:
   group: shop-scraper
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   scrape:

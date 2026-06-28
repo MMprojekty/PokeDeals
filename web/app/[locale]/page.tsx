@@ -84,12 +84,12 @@ export default function Home() {
     shops: number | null;
     inStockOffers: number | null;
   }>({ inStockProducts: null, shops: null, inStockOffers: null });
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [listingsLoading, setListingsLoading] = useState(true);
   const [listingsError, setListingsError] = useState<string | null>(null);
   const [healthInfo, setHealthInfo] = useState<{
     badgeLevel: "green" | "amber" | "red";
     ageMinutes: number | null;
+    latestScrapeAt: string | null;
     totalInStockRows: number;
     totalRows: number;
     stale: boolean;
@@ -122,6 +122,7 @@ export default function Home() {
       setHealthInfo({
         badgeLevel,
         ageMinutes: typeof payload.ageMinutes === "number" ? payload.ageMinutes : null,
+        latestScrapeAt: typeof payload.latestScrapeAt === "string" ? payload.latestScrapeAt : null,
         totalInStockRows: Number(payload.totalInStockRows) || 0,
         totalRows: Number(payload.totalRows) || 0,
         stale: Boolean(payload.stale),
@@ -136,7 +137,7 @@ export default function Home() {
     setListingsLoading(true);
     setListingsError(null);
     try {
-      const response = await fetch("/api/listings");
+      const response = await fetch("/api/listings", { cache: "no-store" });
       const payload = await response.json().catch(() => null);
       if (!response.ok) {
         console.error("Error fetching data:", response.statusText);
@@ -145,7 +146,6 @@ export default function Home() {
         setTotalOffers(0);
         setShopsCount(0);
         setStatsDeltas({ inStockProducts: null, shops: null, inStockOffers: null });
-        setLastUpdated(null);
         return;
       }
 
@@ -167,8 +167,6 @@ export default function Home() {
         shops: typeof deltas?.shops === "number" ? deltas.shops : null,
         inStockOffers: typeof deltas?.inStockOffers === "number" ? deltas.inStockOffers : null,
       });
-      const ts = payload?.meta?.lastUpdated;
-      setLastUpdated(ts ? new Date(ts) : new Date());
     } catch (e) {
       console.error(e);
       setListingsError(t("home.listingsLoadError"));
@@ -189,8 +187,10 @@ export default function Home() {
     return new Intl.NumberFormat("hu-HU").format(price) + " Ft";
   };
 
-  const formatLastUpdated = (value: Date | null) => {
-    if (!value) return "-";
+  const scrapeTime = healthInfo?.latestScrapeAt ? new Date(healthInfo.latestScrapeAt) : null;
+
+  const formatScrapeTime = (value: Date | null) => {
+    if (!value || Number.isNaN(value.getTime())) return "—";
     return value.toLocaleString(locale === "hu" ? "hu-HU" : "en-GB", {
       year: "numeric",
       month: "2-digit",
@@ -198,6 +198,25 @@ export default function Home() {
       hour: "2-digit",
       minute: "2-digit",
     });
+  };
+
+  const formatRelativeAge = (minutes: number | null) => {
+    if (minutes === null) return "—";
+    if (minutes < 1) return t("health.justNow");
+    if (minutes < 60) return t("health.minutesAgo", { minutes });
+    const hours = Math.floor(minutes / 60);
+    const rem = minutes % 60;
+    if (rem === 0) return t("health.hoursAgo", { hours });
+    return t("health.hoursMinutesAgo", { hours, minutes: rem });
+  };
+
+  const scrapeStatusLabel = () => {
+    if (healthFetchFailed) return t("health.unknown");
+    if (!healthInfo) return t("health.loading");
+    if (healthInfo.badgeLevel === "red") return t("health.empty");
+    const time = formatScrapeTime(scrapeTime);
+    const age = formatRelativeAge(healthInfo.ageMinutes);
+    return t("health.scrapeStatus", { time, age });
   };
 
   const healthTooltip = () => {
@@ -210,22 +229,6 @@ export default function Home() {
       inStock: healthInfo.totalInStockRows,
       total: healthInfo.totalRows,
     });
-  };
-
-  const healthBadgeLabelText = () => {
-    if (healthFetchFailed) return t("health.unknown");
-    if (!healthInfo) return "…";
-    if (healthInfo.badgeLevel === "red") return t("health.empty");
-    if (healthInfo.badgeLevel === "amber") {
-      if (healthInfo.totalInStockRows === 0) return t("health.empty");
-      if (healthInfo.stale && healthInfo.ageMinutes !== null) {
-        const hours = Math.floor(healthInfo.ageMinutes / 60);
-        if (hours >= 1) return t("health.outOfDateHours", { hours });
-        return t("health.outOfDateMinutes", { minutes: healthInfo.ageMinutes });
-      }
-      return t("health.stale");
-    }
-    return t("health.fresh");
   };
 
   const healthDotClass = healthFetchFailed
@@ -414,18 +417,13 @@ export default function Home() {
         </div>
 
         <div className="flex items-center gap-3 flex-wrap justify-end">
-          <div className="hidden md:flex items-center gap-1 text-xs font-semibold text-gray-500 bg-white border border-gray-200 rounded-lg px-3 py-2">
-            <span>🕒</span>
-            <span>
-              {t("common.lastUpdated")}: {formatLastUpdated(lastUpdated)}
-            </span>
-          </div>
           <div
             title={healthTooltip()}
-            className={`hidden md:inline-flex items-center gap-2 text-xs font-bold rounded-lg px-3 py-2 border cursor-default ${healthPillClass}`}
+            className={`hidden md:inline-flex items-center gap-2 text-xs font-semibold rounded-lg px-3 py-2 border cursor-default ${healthPillClass}`}
           >
+            <span>🕒</span>
             <span className={`h-2 w-2 rounded-full shrink-0 ${healthDotClass}`} aria-hidden />
-            <span className="whitespace-nowrap">{healthBadgeLabelText()}</span>
+            <span className="whitespace-nowrap">{scrapeStatusLabel()}</span>
           </div>
           <div className="flex gap-2 bg-white rounded-lg p-1 shadow-sm border border-gray-200">
             <button
@@ -489,17 +487,13 @@ export default function Home() {
           </div>
         </div>
 
-        <p className="md:hidden text-xs font-semibold text-gray-500 mb-4 flex flex-wrap items-center gap-2">
-          <span>
-            🕒 {t("common.lastUpdated")}: {formatLastUpdated(lastUpdated)}
-          </span>
-          <span
-            title={healthTooltip()}
-            className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 cursor-default ${healthPillClass}`}
-          >
-            <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${healthDotClass}`} aria-hidden />
-            {healthBadgeLabelText()}
-          </span>
+        <p
+          title={healthTooltip()}
+          className={`md:hidden text-xs font-semibold mb-4 inline-flex items-center gap-2 rounded-lg border px-3 py-2 cursor-default ${healthPillClass}`}
+        >
+          <span>🕒</span>
+          <span className={`h-1.5 w-1.5 rounded-full shrink-0 ${healthDotClass}`} aria-hidden />
+          {scrapeStatusLabel()}
         </p>
       </div>
 

@@ -98,6 +98,11 @@
   "health": {
     "fresh": "Fresh data",
     "stale": "Stale / check pipeline",
+    "scrapeStatus": "Last scrape: {time} · {age}",
+    "justNow": "just now",
+    "minutesAgo": "{minutes}m ago",
+    "hoursAgo": "{hours}h ago",
+    "hoursMinutesAgo": "{hours}h {minutes}m ago",
     "outOfDateHours": "{hours}h since last scrape",
     "outOfDateMinutes": "{minutes}m since last scrape",
     "empty": "No rows in database",

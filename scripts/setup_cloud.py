@@ -141,6 +141,7 @@ def main() -> int:
     parser.add_argument("--skip-push", action="store_true")
     parser.add_argument("--skip-secrets", action="store_true")
     parser.add_argument("--skip-run", action="store_true")
+    parser.add_argument("--run-only", action="store_true", help="Only trigger the cloud scraper workflow.")
     args = parser.parse_args()
 
     env = load_env(SCRAPER_ENV)
@@ -151,6 +152,12 @@ def main() -> int:
         print("  GITHUB_TOKEN=ghp_your_token_here")
         print("Then run: python3 scripts/setup_cloud.py")
         return 1
+
+    if args.run_only:
+        print("Triggering cloud scraper...")
+        trigger_workflow(token)
+        print(f"Done. Open https://github.com/{REPO}/actions to watch the run.")
+        return 0
 
     if not args.github_token and not env.get("GITHUB_TOKEN"):
         save_env_value(SCRAPER_ENV, "GITHUB_TOKEN", token)

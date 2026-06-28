@@ -98,6 +98,11 @@
   "health": {
     "fresh": "Friss adatok",
     "stale": "Elavult / ellenőrizd a folyamatot",
+    "scrapeStatus": "Utolsó lekérdezés: {time} · {age}",
+    "justNow": "épp most",
+    "minutesAgo": "{minutes} perce",
+    "hoursAgo": "{hours} órája",
+    "hoursMinutesAgo": "{hours} órája {minutes} perce",
     "outOfDateHours": "{hours} óra telt el az utolsó lekérdezés óta",
     "outOfDateMinutes": "{minutes} perc telt el az utolsó lekérdezés óta",
     "empty": "Nincsenek sorok az adatbázisban",
