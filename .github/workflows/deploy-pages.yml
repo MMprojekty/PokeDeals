@@ -44,7 +44,9 @@ jobs:
         run: npm install --no-audit --no-fund
 
       - name: Prepare static export
-        run: rm -rf web/app/api web/app/llms.txt
+        run: |
+          rm -rf web/app/api web/app/llms.txt
+          rm -f web/middleware.ts
 
       - name: Build static site
         working-directory: web
