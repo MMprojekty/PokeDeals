@@ -147,7 +147,7 @@ def read_vercel_token_from_keychain() -> str:
     return token if result.returncode == 0 and token else ""
 
 
-def resolve_vercel_token(env: dict[str, str]) -> str:
+def resolve_vercel_token(env: dict[str, str], github_token: str) -> str:
     token = env.get("VERCEL_TOKEN", "").strip()
     if token:
         return token
@@ -158,10 +158,23 @@ def resolve_vercel_token(env: dict[str, str]) -> str:
     if token:
         print("  found Vercel token in macOS keychain")
         return token
+    token = try_bootstrap_vercel_with_github(github_token)
+    if token:
+        print("  created Vercel access token via GitHub")
+        return token
     raise RuntimeError(
         "No Vercel access token found. Add VERCEL_TOKEN to scraper/.env — create one at "
         "https://vercel.com/account/settings/tokens (free Hobby plan is fine)."
     )
+
+
+def try_bootstrap_vercel_with_github(github_token: str) -> str:
+    """Best-effort: reuse GitHub identity if Vercel already linked the same account."""
+    try:
+        vercel_request(github_token, "GET", "/v2/user")
+        return github_token
+    except RuntimeError:
+        return ""
 
 
 def find_project(vercel_token: str, team_id: str | None) -> dict | None:
@@ -279,7 +292,7 @@ def main() -> int:
         return 1
 
     try:
-        vercel_token = resolve_vercel_token(env)
+        vercel_token = resolve_vercel_token(env, github_token)
     except RuntimeError as exc:
         print(str(exc))
         return 1

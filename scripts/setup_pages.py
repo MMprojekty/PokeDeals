@@ -59,16 +59,40 @@ def enable_pages(token: str) -> None:
         )
         print("  enabled GitHub Pages (workflow build)")
     except RuntimeError as exc:
-        if "409" in str(exc) or "422" in str(exc):
+        message = str(exc)
+        if "does not support GitHub Pages" in message:
+            print("  free GitHub Pages needs a public repository — making repo public...")
+            github_request(token, "PATCH", f"/repos/{REPO}", {"private": False})
             github_request(
                 token,
-                "PUT",
+                "POST",
                 f"/repos/{REPO}/pages",
                 {"build_type": "workflow"},
             )
-            print("  updated GitHub Pages to workflow build")
-        else:
-            raise
+            print("  enabled GitHub Pages (workflow build)")
+            return
+        if "409" in message or "422" in message:
+            try:
+                github_request(
+                    token,
+                    "PUT",
+                    f"/repos/{REPO}/pages",
+                    {"build_type": "workflow"},
+                )
+                print("  updated GitHub Pages to workflow build")
+                return
+            except RuntimeError as put_exc:
+                if "404" in str(put_exc):
+                    github_request(
+                        token,
+                        "POST",
+                        f"/repos/{REPO}/pages",
+                        {"build_type": "workflow"},
+                    )
+                    print("  enabled GitHub Pages (workflow build)")
+                    return
+                raise
+        raise
 
 
 def trigger_pages_deploy(token: str) -> None:
