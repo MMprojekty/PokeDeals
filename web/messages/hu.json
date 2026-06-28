@@ -13,16 +13,16 @@
     "home": "Főoldal"
   },
   "home": {
-    "pageTitle": "Pokemon TCG árak magyar boltokban",
-    "pageSubtitle": "{offers} élő ajánlat között {products} egyedi termék nyomon követése.",
+    "pageTitle": "Pokémon TCG árak magyar boltokban",
+    "pageSubtitle": "Követjük a {products} egyedi terméket {offers} élő ajánlatban.",
     "comparePrices": "Árak összehasonlítása",
     "trendingNow": "Jelenleg népszerű",
-    "trendingSubtitle": "AI piaci kereslet szerint rangsorolva — új kiadások, hype és gyűjtői érdeklődés Magyarországon és Európában.",
-    "trendingBadge": "Felkapott",
+    "trendingSubtitle": "AI piaci kereslet alapján rangsorolva — új megjelenések, hype és gyűjtői érdeklődés Magyarországon és Európában.",
+    "trendingBadge": "Forró",
     "bestVsMedian": "Legjobb ajánlat vs Medián",
     "back": "Vissza a főoldalra",
     "comparing": "Összehasonlítás",
-    "storeOffers": "bolt ajánlatok",
+    "storeOffers": "bolti ajánlatok",
     "viewDeal": "Ajánlat megtekintése",
     "listingsLoadError": "Nem sikerült betölteni a listákat."
   },
@@ -32,16 +32,16 @@
     "preorder": "Előrendelés"
   },
   "categories": {
-    "all": "Minden",
+    "all": "Összes",
     "boosterBoxes": "Booster dobozok",
-    "bundles": "Csomagok",
+    "bundles": "Bundle-ek",
     "boosterPacks": "Booster csomagok",
     "etbs": "ETB-k",
     "tinsBlisters": "Fém dobozok / Bliszterek",
     "boosterBox": "Booster doboz",
-    "eliteTrainerBox": "Elite Trainer doboz",
+    "eliteTrainerBox": "Elite Trainer Box",
     "boosterPack": "Booster csomag",
-    "boosterBundle": "Booster csomag",
+    "boosterBundle": "Booster bundle",
     "tin": "Fém doboz",
     "blister": "Bliszter",
     "collectionBox": "Gyűjtemény doboz",
@@ -68,8 +68,8 @@
       "offers": "Ajánlatok"
     },
     "tooltips": {
-      "median": "Az összes aktuális ajánlat közötti középső ár.",
-      "spread": "Különbség a legmagasabb és legalacsonyabb árak között.",
+      "median": "A jelenlegi ajánlatok közötti középső ár.",
+      "spread": "Különbség a legmagasabb és legalacsonyabb listázott árak között.",
       "delta": "Mennyivel tér el a legjobb ár a mediántól (százalékban). Negatív érték jobb, mint a medián."
     },
     "sort": {
@@ -87,14 +87,14 @@
     "shops": "Boltok",
     "inStockOffers": "Készleten lévő ajánlatok",
     "metricsTitle": "Mit jelentenek a számok",
-    "metricOffers": "Ajánlatok = készleten lévő bolt ajánlatok",
+    "metricOffers": "Ajánlatok = készleten lévő bolti ajánlatok",
     "metricMedian": "Medián = középső ár az ajánlatok között",
     "metricGap": "Árkülönbség = legmagasabb - legalacsonyabb ár",
     "metricDelta": "Delta = legjobb vs medián (%)",
     "vsLastUpdate": "vs utolsó frissítés"
   },
   "filters": {
-    "allLanguages": "Minden nyelv",
+    "allLanguages": "Összes nyelv",
     "englishOnly": "Csak angol"
   },
   "health": {
@@ -112,25 +112,25 @@
     "tooltipPrefix": "Ops állapot",
     "loadFailed": "Nem sikerült betölteni /api/health.",
     "loading": "Állapot betöltése…",
-    "tooltipDetail": "{prefix}: {age} perc telt el az utolsó lekérés óta · {inStock} készleten lévő sor / {total} sor összesen"
+    "tooltipDetail": "{prefix}: {age} perc telt el az utolsó lekérés óta · {inStock} készleten lévő sor / {total} összes sor"
   },
   "footer": {
-    "disclaimer": "Az árak és elérhetőség a kereskedőktől származnak — mindig ellenőrizd vásárlás előtt."
+    "disclaimer": "Az árakat és a rendelkezésre állást a kereskedők állítják be — mindig ellenőrizd vásárlás előtt."
   },
   "seo": {
     "metaTitle": "PokéDeals — Pokémon TCG árak Magyarországon",
-    "metaDescription": "Hasonlítsd össze a készleten lévő Pokémon TCG booster boxok, ETB-k, tinék és booster csomagok árait magyar webshopokban. Óránként frissített árak forintban.",
-    "keywords": "pokemon kártya árak,pokémon tcg árak,pokemon booster box ár,pokemon etb ár,elite trainer box magyarország,pokemon webshop,pokemon árak összehasonlítás,pokémon kártya bolt,pokemon kártyák magyarország",
-    "introP1": "A PokéDeals élő, készleten lévő Pokémon TCG árakat hasonlít össze magyar online boltokból, hogy egy helyen lásd a legalacsonyabb árat, a medián piaci árat és az árkülönbséget.",
-    "introP2": "Kövesd a booster boxokat, Elite Trainer Boxokat, tinéket, blister csomagokat, bundle-öket és booster pack-eket több kereskedőnél — árak forintban, nagyjából óránként frissítve.",
-    "faqTitle": "Gyakori kérdések",
-    "faqQ1": "Hol hasonlíthatom össze a Pokémon kártya árakat Magyarországon?",
-    "faqA1": "A PokéDeals a magyar Pokémon TCG webshopok aktuális, készleten lévő ajánlatait gyűjti össze, és termékenként mutatja a legalacsonyabb árat, a medián árat és az ajánlatok számát.",
+    "metaDescription": "Hasonlítsd össze a készleten lévő Pokémon TCG booster dobozokat, ETB-ket, fém dobozokat és booster csomagokat magyar webáruházakban. Élő árak Ft-ban, óránként frissítve.",
+    "keywords": "pokemon kártyák magyarország,pokemon tcg magyarország,pokemon kártya árak magyarország,pokemon booster doboz ár,pokemon etb ár,elite trainer box magyarország,pokemon árak,pokémon kártya árak,pokemon webshop összehasonlítás",
+    "introP1": "A PokéDeals élőben hasonlítja össze a készleten lévő Pokémon TCG árakat magyar online boltokból, így egy helyen láthatod a legalacsonyabb árat, a piaci mediánt és az árkülönbséget zárt termékek esetén.",
+    "introP2": "Kövesd a booster dobozokat, Elite Trainer Boxokat, fém dobozokat, blisztereket, bundle-eket és booster csomagokat több kereskedőn keresztül — árak forintban (Ft), körülbelül óránként frissítve.",
+    "faqTitle": "Gyakran ismételt kérdések",
+    "faqQ1": "Hol tudom összehasonlítani a Pokémon kártyák árait Magyarországon?",
+    "faqA1": "A PokéDeals összegyűjti a jelenlegi készleten lévő ajánlatokat magyar Pokémon TCG webáruházakból, és megmutatja a legalacsonyabb árat, a medián árat és az ajánlatok számát minden termékhez.",
     "faqQ2": "Milyen gyakran frissülnek az árak?",
-    "faqA2": "A rendszer nagyjából óránként ellenőrzi a részt vevő boltokat. Vásárlás előtt mindig erősítsd meg a végső árat és a készletet a bolt weboldalán.",
+    "faqA2": "A lekérdező körülbelül óránként ellenőrzi a résztvevő boltokat. Mindig erősítsd meg a végső árat és a készletet a bolt weboldalán vásárlás előtt.",
     "faqQ3": "Milyen termékek szerepelnek?",
-    "faqA3": "Elsősorban készleten lévő, zárt Pokémon TCG termékek: booster boxok, ETB-k, tinék, blister csomagok, bundle-ök és booster pack-ek.",
-    "termsDescription": "A PokéDeals felhasználási feltételei és jogi nyilatkozata — Pokémon TCG árösszehasonlító Magyarországon.",
-    "privacyDescription": "A PokéDeals adatvédelmi tájékoztatója, beleértve a listázási adatok tárolását és megjelenítését."
+    "faqA3": "A készleten lévő zárt Pokémon TCG termékekre összpontosítunk: booster dobozok, ETB-k, fém dobozok, bliszterek, bundle-ek és booster csomagok.",
+    "termsDescription": "A PokéDeals felhasználási feltételei és nyilatkozata, egy Pokémon TCG ár-összehasonlító oldal Magyarország számára.",
+    "privacyDescription": "A PokéDeals adatvédelmi információi, beleértve a listázott adatok tárolásának és megjelenítésének módját."
   }
 }
