@@ -248,10 +248,7 @@ export default function Home() {
           ? "border-amber-200 bg-amber-50 text-amber-900"
           : "border-emerald-200 bg-emerald-50 text-emerald-900";
 
-  const trendingProducts = products.slice(0, 5);
-  const remainingProducts = products.slice(5);
-
-  const filteredProducts = remainingProducts.filter((p) => {
+  const filteredProducts = products.filter((p) => {
     const title = p.displayTitle.toLowerCase();
 
     const isEnglishProduct = (value: string) => {
@@ -321,12 +318,6 @@ export default function Home() {
     });
     return rows;
   }, [filteredProducts, sortColumn, sortDirection, locale]);
-
-  const bestDeals = [...products]
-    .filter((p) => p.bestVsMedian < 0)
-    .sort((a, b) => a.bestVsMedian - b.bestVsMedian)
-    .slice(0, 5);
-  const topWidgetCols = "grid-cols-[20px_32px_minmax(0,1fr)_170px_92px_52px]";
 
   const sortButtonClass =
     "inline-flex items-center flex-nowrap gap-1.5 whitespace-nowrap font-bold uppercase tracking-wider hover:text-gray-700 transition-colors";
@@ -469,15 +460,35 @@ export default function Home() {
             </button>
           </div>
         ) : null}
-        <h2 className="text-3xl font-bold mb-2">{t("home.pageTitle")}</h2>
-        <p className="text-gray-500 mb-8 text-sm">
-          {listingsLoading && products.length === 0
-            ? t("common.loading")
-            : t("home.pageSubtitle", {
-                offers: totalOffers,
-                products: products.length,
-              })}
-        </p>
+        <h2 className="text-3xl font-bold mb-6">{t("home.pageTitle")}</h2>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
+            <div className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t("bento.inStockProducts")}</div>
+            <div className="text-2xl font-extrabold text-gray-900 mt-2">{products.length}</div>
+            <StatDelta delta={statsDeltas.inStockProducts} label={t("bento.vsLastUpdate")} />
+          </div>
+          <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
+            <div className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t("bento.shops")}</div>
+            <div className="text-2xl font-extrabold text-gray-900 mt-2">{shopsCount}</div>
+            <StatDelta delta={statsDeltas.shops} label={t("bento.vsLastUpdate")} />
+          </div>
+          <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
+            <div className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t("bento.inStockOffers")}</div>
+            <div className="text-2xl font-extrabold text-gray-900 mt-2">{totalOffers}</div>
+            <StatDelta delta={statsDeltas.inStockOffers} label={t("bento.vsLastUpdate")} />
+          </div>
+          <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm sm:col-span-2 lg:col-span-1">
+            <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{t("bento.metricsTitle")}</div>
+            <div className="text-xs text-gray-600 space-y-1">
+              <div>• {t("bento.metricOffers")}</div>
+              <div>• {t("bento.metricMedian")}</div>
+              <div>• {t("bento.metricGap")}</div>
+              <div>• {t("bento.metricDelta")}</div>
+            </div>
+          </div>
+        </div>
+
         <p className="md:hidden text-xs font-semibold text-gray-500 mb-4 flex flex-wrap items-center gap-2">
           <span>
             🕒 {t("common.lastUpdated")}: {formatLastUpdated(lastUpdated)}
@@ -495,145 +506,8 @@ export default function Home() {
       {listingsLoading && products.length === 0 ? (
         <div className="max-w-7xl mx-auto py-24 text-center text-gray-600 font-semibold">{t("common.loading")}</div>
       ) : (
-        <>
-          <div className="mx-auto max-w-[92rem]">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-              <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-                <h3 className="font-bold text-lg mb-4 flex items-center gap-2">🔥 {t("home.trendingNow")}</h3>
-                <div
-                  className={`grid ${topWidgetCols} items-center gap-2 px-3 pb-2 mb-2 border-b border-gray-100 text-[11px] font-bold text-gray-400 uppercase tracking-wider`}
-                >
-                  <div className="text-center">{t("table.headers.rank")}</div>
-                  <div />
-                  <div>{t("table.headers.product")}</div>
-                  <div className="text-right">{t("pricing.offersAndMedian")}</div>
-                  <div className="text-right">{t("pricing.lowest")}</div>
-                  <div className="text-right">{t("pricing.delta")}</div>
-                </div>
-                <div className="space-y-2.5">
-                  {trendingProducts.map((prod, idx) => (
-                    <div
-                      key={idx}
-                      onClick={() => setSelectedProduct(prod)}
-                      className="cursor-pointer rounded-lg border border-gray-100 bg-white hover:bg-gray-50 hover:shadow-sm transition-all px-3 py-2"
-                    >
-                      <div className={`grid ${topWidgetCols} items-center gap-2`}>
-                        <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-white border border-gray-200 text-[10px] font-bold text-gray-600">
-                          {idx + 1}
-                        </span>
-                        <div className="w-8 h-8 flex-shrink-0 flex items-center justify-center bg-white rounded-md border border-gray-100">
-                          {prod.imageUrl ? (
-                            <img
-                              src={prod.imageUrl}
-                              alt={prod.displayTitle}
-                              className="max-h-full max-w-full object-contain"
-                            />
-                          ) : (
-                            <div className="w-6 h-6 bg-gray-100 rounded" />
-                          )}
-                        </div>
-                        <p className="text-sm font-semibold line-clamp-1">{prod.displayTitle}</p>
-                        <p className="text-xs text-gray-500 whitespace-nowrap overflow-hidden text-ellipsis text-right">
-                          {t("pricing.offers")}: {prod.offers.length} · {t("pricing.marketMedian")}:{" "}
-                          {formatPrice(prod.medianPrice)}
-                        </p>
-                        <p className="font-extrabold text-sm whitespace-nowrap text-right min-w-[82px]">
-                          {formatPrice(prod.lowestPrice)}
-                        </p>
-                        <span
-                          className={`text-xs font-bold text-right min-w-[38px] ${prod.bestVsMedian > 0 ? "text-red-500" : prod.bestVsMedian < 0 ? "text-green-500" : "text-gray-300"}`}
-                        >
-                          {prod.bestVsMedian !== 0 ? `${prod.bestVsMedian > 0 ? "+" : ""}${prod.bestVsMedian}%` : "-"}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-                <h3 className="font-bold text-lg mb-4 flex items-center gap-2">🚀 {t("home.bestVsMedian")}</h3>
-                <div
-                  className={`grid ${topWidgetCols} items-center gap-2 px-3 pb-2 mb-2 border-b border-gray-100 text-[11px] font-bold text-gray-400 uppercase tracking-wider`}
-                >
-                  <div className="text-center">{t("table.headers.rank")}</div>
-                  <div />
-                  <div>{t("table.headers.product")}</div>
-                  <div className="text-right">{t("pricing.spread")}</div>
-                  <div className="text-right">{t("pricing.lowest")}</div>
-                  <div className="text-right">{t("pricing.delta")}</div>
-                </div>
-                <div className="space-y-2.5">
-                  {bestDeals.map((prod, idx) => (
-                    <div
-                      key={idx}
-                      onClick={() => setSelectedProduct(prod)}
-                      className="cursor-pointer rounded-lg border border-gray-100 bg-white hover:bg-gray-50 hover:shadow-sm transition-all px-3 py-2"
-                    >
-                      <div className={`grid ${topWidgetCols} items-center gap-2`}>
-                        <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-white border border-gray-200 text-[10px] font-bold text-gray-600">
-                          {idx + 1}
-                        </span>
-                        <div className="w-8 h-8 flex-shrink-0 flex items-center justify-center bg-white rounded-md border border-gray-100">
-                          {prod.imageUrl ? (
-                            <img
-                              src={prod.imageUrl}
-                              alt={prod.displayTitle}
-                              className="max-h-full max-w-full object-contain"
-                            />
-                          ) : (
-                            <div className="w-6 h-6 bg-gray-100 rounded" />
-                          )}
-                        </div>
-                        <p className="text-sm font-semibold line-clamp-1">{prod.displayTitle}</p>
-                        <p className="text-xs text-gray-500 whitespace-nowrap overflow-hidden text-ellipsis text-right">
-                          {t("pricing.spread")}: {prod.spread === 0 ? "0 Ft" : formatPrice(prod.spread)}
-                        </p>
-                        <p className="font-extrabold text-sm whitespace-nowrap text-right min-w-[82px]">
-                          {formatPrice(prod.lowestPrice)}
-                        </p>
-                        <span className="text-xs font-bold text-gray-700 text-right min-w-[38px]">
-                          {prod.bestVsMedian}%
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="max-w-7xl mx-auto mb-8">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
-                <div className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t("bento.inStockProducts")}</div>
-                <div className="text-2xl font-extrabold text-gray-900 mt-2">{products.length}</div>
-                <StatDelta delta={statsDeltas.inStockProducts} label={t("bento.vsLastUpdate")} />
-              </div>
-              <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
-                <div className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t("bento.shops")}</div>
-                <div className="text-2xl font-extrabold text-gray-900 mt-2">{shopsCount}</div>
-                <StatDelta delta={statsDeltas.shops} label={t("bento.vsLastUpdate")} />
-              </div>
-              <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
-                <div className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t("bento.inStockOffers")}</div>
-                <div className="text-2xl font-extrabold text-gray-900 mt-2">{totalOffers}</div>
-                <StatDelta delta={statsDeltas.inStockOffers} label={t("bento.vsLastUpdate")} />
-              </div>
-              <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm sm:col-span-2 lg:col-span-1">
-                <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{t("bento.metricsTitle")}</div>
-                <div className="text-xs text-gray-600 space-y-1">
-                  <div>• {t("bento.metricOffers")}</div>
-                  <div>• {t("bento.metricMedian")}</div>
-                  <div>• {t("bento.metricGap")}</div>
-                  <div>• {t("bento.metricDelta")}</div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="max-w-7xl mx-auto">
-            <div className="flex flex-wrap gap-2 overflow-x-auto pb-4 mb-4 scrollbar-hide">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex flex-wrap gap-2 overflow-x-auto pb-4 mb-4 scrollbar-hide">
               <button
                 onClick={() => setActiveFilter("all")}
                 className={`whitespace-nowrap px-4 py-1.5 rounded-lg text-sm font-bold transition-colors border ${activeFilter === "all" ? btnAct : btnIna}`}
@@ -685,7 +559,9 @@ export default function Home() {
               </button>
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <h3 className="font-bold text-lg mb-4 flex items-center gap-2">🔥 {t("home.trendingNow")}</h3>
+
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
@@ -831,8 +707,7 @@ export default function Home() {
                 </table>
               </div>
             </div>
-          </div>
-        </>
+        </div>
       )}
     </main>
   );
