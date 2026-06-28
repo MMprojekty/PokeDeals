@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { usePathname, useRouter } from "@/i18n/navigation";
 
@@ -24,6 +24,50 @@ type ComparisonRow = {
   offers: ShopOffer[];
 };
 
+type SortColumn = "score" | "product" | "lowestPrice" | "medianPrice" | "spread" | "bestVsMedian" | "offers";
+type SortDirection = "asc" | "desc";
+
+function SortIndicator({ active, direction }: { active: boolean; direction: SortDirection }) {
+  return (
+    <span
+      className={`inline-flex shrink-0 items-center justify-center text-sm leading-none ${
+        active ? "text-[#a63c5e] font-black" : "text-gray-500 font-semibold"
+      }`}
+      aria-hidden
+    >
+      {active ? (direction === "asc" ? "▲" : "▼") : "⇅"}
+    </span>
+  );
+}
+
+function HeaderInfoIcon({ title }: { title: string }) {
+  return (
+    <span
+      className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-gray-300 text-[9px] font-bold leading-none text-gray-400"
+      title={title}
+      onClick={(e) => e.stopPropagation()}
+      onKeyDown={(e) => e.stopPropagation()}
+    >
+      i
+    </span>
+  );
+}
+
+function StatDelta({ delta, label }: { delta: number | null; label: string }) {
+  if (delta === null) return null;
+
+  const unchanged = delta === 0;
+  const positive = delta > 0;
+  const sign = positive ? "+" : "";
+  const colorClass = unchanged ? "text-gray-500" : positive ? "text-emerald-600" : "text-rose-600";
+
+  return (
+    <div className={`text-xs font-semibold mt-1 ${colorClass}`}>
+      {unchanged ? "±0" : `${sign}${delta}`} {label}
+    </div>
+  );
+}
+
 export default function Home() {
   const t = useTranslations();
   const locale = useLocale();
@@ -35,6 +79,11 @@ export default function Home() {
   const [languageFilter, setLanguageFilter] = useState<"all" | "english">("all");
   const [totalOffers, setTotalOffers] = useState(0);
   const [shopsCount, setShopsCount] = useState(0);
+  const [statsDeltas, setStatsDeltas] = useState<{
+    inStockProducts: number | null;
+    shops: number | null;
+    inStockOffers: number | null;
+  }>({ inStockProducts: null, shops: null, inStockOffers: null });
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [listingsLoading, setListingsLoading] = useState(true);
   const [listingsError, setListingsError] = useState<string | null>(null);
@@ -47,6 +96,17 @@ export default function Home() {
   } | null>(null);
   const [healthFetchFailed, setHealthFetchFailed] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<ComparisonRow | null>(null);
+  const [sortColumn, setSortColumn] = useState<SortColumn>("score");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+
+  function toggleSort(column: SortColumn) {
+    if (sortColumn === column) {
+      setSortDirection((current) => (current === "asc" ? "desc" : "asc"));
+      return;
+    }
+    setSortColumn(column);
+    setSortDirection(column === "product" ? "asc" : "desc");
+  }
 
   async function fetchHealthSnapshot() {
     try {
@@ -84,6 +144,7 @@ export default function Home() {
         setProducts([]);
         setTotalOffers(0);
         setShopsCount(0);
+        setStatsDeltas({ inStockProducts: null, shops: null, inStockOffers: null });
         setLastUpdated(null);
         return;
       }
@@ -99,6 +160,13 @@ export default function Home() {
       setProducts(data);
       setTotalOffers(Number(payload?.meta?.totalOffers) || data.length);
       setShopsCount(Number(payload?.meta?.shopCount) || 0);
+      const deltas = payload?.meta?.deltas;
+      setStatsDeltas({
+        inStockProducts:
+          typeof deltas?.inStockProducts === "number" ? deltas.inStockProducts : null,
+        shops: typeof deltas?.shops === "number" ? deltas.shops : null,
+        inStockOffers: typeof deltas?.inStockOffers === "number" ? deltas.inStockOffers : null,
+      });
       const ts = payload?.meta?.lastUpdated;
       setLastUpdated(ts ? new Date(ts) : new Date());
     } catch (e) {
@@ -213,11 +281,48 @@ export default function Home() {
     return true;
   });
 
+  const sortedFilteredProducts = useMemo(() => {
+    const rows = [...filteredProducts];
+    rows.sort((a, b) => {
+      let cmp = 0;
+      switch (sortColumn) {
+        case "product":
+          cmp = a.displayTitle.localeCompare(b.displayTitle, locale === "hu" ? "hu" : "en");
+          break;
+        case "lowestPrice":
+          cmp = a.lowestPrice - b.lowestPrice;
+          break;
+        case "medianPrice":
+          cmp = a.medianPrice - b.medianPrice;
+          break;
+        case "spread":
+          cmp = a.spread - b.spread;
+          break;
+        case "bestVsMedian":
+          cmp = a.bestVsMedian - b.bestVsMedian;
+          break;
+        case "offers":
+          cmp = a.offers.length - b.offers.length;
+          break;
+        case "score":
+        default:
+          cmp = a.score - b.score;
+          break;
+      }
+      return sortDirection === "asc" ? cmp : -cmp;
+    });
+    return rows;
+  }, [filteredProducts, sortColumn, sortDirection, locale]);
+
   const bestDeals = [...products]
     .filter((p) => p.bestVsMedian < 0)
     .sort((a, b) => a.bestVsMedian - b.bestVsMedian)
     .slice(0, 5);
   const topWidgetCols = "grid-cols-[20px_32px_minmax(0,1fr)_170px_92px_52px]";
+
+  const sortButtonClass =
+    "inline-flex items-center flex-nowrap gap-1.5 whitespace-nowrap font-bold uppercase tracking-wider hover:text-gray-700 transition-colors";
+  const sortThClass = "p-4 align-middle whitespace-nowrap";
 
   const btnAct = "bg-[#a63c5e] text-white border-[#a63c5e]";
   const btnIna = "bg-white text-gray-700 border-gray-200 hover:bg-gray-50";
@@ -495,14 +600,17 @@ export default function Home() {
               <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
                 <div className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t("bento.inStockProducts")}</div>
                 <div className="text-2xl font-extrabold text-gray-900 mt-2">{products.length}</div>
+                <StatDelta delta={statsDeltas.inStockProducts} label={t("bento.vsLastUpdate")} />
               </div>
               <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
                 <div className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t("bento.shops")}</div>
                 <div className="text-2xl font-extrabold text-gray-900 mt-2">{shopsCount}</div>
+                <StatDelta delta={statsDeltas.shops} label={t("bento.vsLastUpdate")} />
               </div>
               <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
                 <div className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t("bento.inStockOffers")}</div>
                 <div className="text-2xl font-extrabold text-gray-900 mt-2">{totalOffers}</div>
+                <StatDelta delta={statsDeltas.inStockOffers} label={t("bento.vsLastUpdate")} />
               </div>
               <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm sm:col-span-2 lg:col-span-1">
                 <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{t("bento.metricsTitle")}</div>
@@ -574,47 +682,93 @@ export default function Home() {
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-white border-b border-gray-100 text-xs font-bold text-gray-400 uppercase tracking-wider">
-                      <th className="p-4 w-12 text-center">{t("table.headers.rank")}</th>
-                      <th className="p-4">{t("table.headers.product")}</th>
-                      <th className="p-4 text-right">{t("table.headers.lowestPrice")}</th>
-                      <th className="p-4 text-right whitespace-nowrap" title={t("table.tooltips.median")}>
-                        <span className="inline-flex items-center gap-1 justify-end">
-                          {t("table.headers.median")}
-                          <span
-                            className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-gray-300 text-[10px] font-bold text-gray-400 cursor-help"
-                            title={t("table.tooltips.median")}
-                          >
-                            i
-                          </span>
-                        </span>
+                      <th className={`${sortThClass} w-12 text-center`}>
+                        <button
+                          type="button"
+                          onClick={() => toggleSort("score")}
+                          className={`${sortButtonClass} mx-auto`}
+                          aria-label={t("table.sort.rank")}
+                        >
+                          <span>{t("table.headers.rank")}</span>
+                          <SortIndicator active={sortColumn === "score"} direction={sortDirection} />
+                        </button>
                       </th>
-                      <th className="p-4 text-right whitespace-nowrap" title={t("table.tooltips.spread")}>
-                        <span className="inline-flex items-center gap-1 justify-end">
-                          {t("table.headers.priceGap")}
-                          <span
-                            className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-gray-300 text-[10px] font-bold text-gray-400 cursor-help"
-                            title={t("table.tooltips.spread")}
-                          >
-                            i
-                          </span>
-                        </span>
+                      <th className={sortThClass}>
+                        <button
+                          type="button"
+                          onClick={() => toggleSort("product")}
+                          className={sortButtonClass}
+                          aria-label={t("table.sort.product")}
+                        >
+                          <span>{t("table.headers.product")}</span>
+                          <SortIndicator active={sortColumn === "product"} direction={sortDirection} />
+                        </button>
                       </th>
-                      <th className="p-4 text-right whitespace-nowrap" title={t("table.tooltips.delta")}>
-                        <span className="inline-flex items-center gap-1 justify-end">
-                          {t("table.headers.delta")}
-                          <span
-                            className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-gray-300 text-[10px] font-bold text-gray-400 cursor-help"
-                            title={t("table.tooltips.delta")}
-                          >
-                            i
-                          </span>
-                        </span>
+                      <th className={`${sortThClass} text-right`}>
+                        <button
+                          type="button"
+                          onClick={() => toggleSort("lowestPrice")}
+                          className={`${sortButtonClass} ml-auto`}
+                          aria-label={t("table.sort.lowestPrice")}
+                        >
+                          <span>{t("table.headers.lowestPrice")}</span>
+                          <SortIndicator active={sortColumn === "lowestPrice"} direction={sortDirection} />
+                        </button>
                       </th>
-                      <th className="p-4 text-center">{t("table.headers.offers")}</th>
+                      <th className={`${sortThClass} text-right`}>
+                        <button
+                          type="button"
+                          onClick={() => toggleSort("medianPrice")}
+                          className={`${sortButtonClass} ml-auto`}
+                          title={t("table.tooltips.median")}
+                          aria-label={t("table.sort.median")}
+                        >
+                          <span>{t("table.headers.median")}</span>
+                          <HeaderInfoIcon title={t("table.tooltips.median")} />
+                          <SortIndicator active={sortColumn === "medianPrice"} direction={sortDirection} />
+                        </button>
+                      </th>
+                      <th className={`${sortThClass} text-right`}>
+                        <button
+                          type="button"
+                          onClick={() => toggleSort("spread")}
+                          className={`${sortButtonClass} ml-auto`}
+                          title={t("table.tooltips.spread")}
+                          aria-label={t("table.sort.priceGap")}
+                        >
+                          <span>{t("table.headers.priceGap")}</span>
+                          <HeaderInfoIcon title={t("table.tooltips.spread")} />
+                          <SortIndicator active={sortColumn === "spread"} direction={sortDirection} />
+                        </button>
+                      </th>
+                      <th className={`${sortThClass} text-right`}>
+                        <button
+                          type="button"
+                          onClick={() => toggleSort("bestVsMedian")}
+                          className={`${sortButtonClass} ml-auto`}
+                          title={t("table.tooltips.delta")}
+                          aria-label={t("table.sort.delta")}
+                        >
+                          <span>{t("table.headers.delta")}</span>
+                          <HeaderInfoIcon title={t("table.tooltips.delta")} />
+                          <SortIndicator active={sortColumn === "bestVsMedian"} direction={sortDirection} />
+                        </button>
+                      </th>
+                      <th className={`${sortThClass} text-center`}>
+                        <button
+                          type="button"
+                          onClick={() => toggleSort("offers")}
+                          className={`${sortButtonClass} mx-auto`}
+                          aria-label={t("table.sort.offers")}
+                        >
+                          <span>{t("table.headers.offers")}</span>
+                          <SortIndicator active={sortColumn === "offers"} direction={sortDirection} />
+                        </button>
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
-                    {filteredProducts.map((prod, idx) => (
+                    {sortedFilteredProducts.map((prod, idx) => (
                       <tr
                         key={idx}
                         onClick={() => setSelectedProduct(prod)}
@@ -658,7 +812,7 @@ export default function Home() {
                         </td>
                       </tr>
                     ))}
-                    {filteredProducts.length === 0 && (
+                    {sortedFilteredProducts.length === 0 && (
                       <tr>
                         <td colSpan={7} className="p-8 text-center text-sm text-gray-500">
                           {t("common.noData")}

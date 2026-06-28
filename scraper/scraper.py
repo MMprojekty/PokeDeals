@@ -5,6 +5,7 @@ import logging
 import os
 import re
 import time
+import unicodedata
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
 from urllib.parse import quote_plus
@@ -39,6 +40,9 @@ SUPPORTED_CATEGORIES = {
 }
 EUR_TO_HUF_RATE = 395.0
 LISTINGS_TABLE = os.getenv("SUPABASE_LISTINGS_TABLE", "shop_listings")
+STATS_BUCKET = "pokedeals-meta"
+STATS_OBJECT = "stats_snapshots.json"
+MAX_STATS_SNAPSHOTS = 30
 DELETE_SENTINEL_ID = "00000000-0000-0000-0000-000000000000"
 MIN_EXPECTED_PRODUCTS = int(os.getenv("MIN_EXPECTED_PRODUCTS", "30"))
 
@@ -251,8 +255,8 @@ def mapping_is_consistent(local_title: str, cm_name: str, cm_category: str) -> b
 def stabilize_canonical_title(title: str) -> str:
     cleaned = title.strip()
     replacements = [
-        (r"^pok[eé]mon\s*tcg[:\-\s]*", ""),
-        (r"^pok[eé]mon[:\-\s]*", ""),
+        (r"^pok[eé]mon\s*tcg[:\-\s–—]*", ""),
+        (r"^pok[eé]mon[:\-\s–—]*", ""),
         (r"\bdisplay box\b", "booster box"),
         (r"\bbooster display\b", "booster box"),
         (r"\s*\(\s*\d+\s*packs?\s*\)\s*", " "),
@@ -261,7 +265,8 @@ def stabilize_canonical_title(title: str) -> str:
     ]
     for pattern, repl in replacements:
         cleaned = re.sub(pattern, repl, cleaned, flags=re.IGNORECASE)
-    cleaned = re.sub(r"\s+", " ", cleaned).strip(" -:")
+    cleaned = re.sub(r"^[\s\-–—:]+", "", cleaned)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip(" -–—:")
     return cleaned
 
 
@@ -312,7 +317,8 @@ Rules:
 3) Canonical title must be concise, stable across shops, and in English.
 4) Canonical title MUST include set/series identity (for example "Perfect Order", "Journey Together", "151", etc).
 5) Never return generic labels like "Elite Trainer Box" alone.
-4) Do not transform Bundle into Booster Box or Pack into Box.
+6) Never start the title with punctuation, dashes, or "Pokemon"/"Pokemon TCG".
+7) Do not transform Bundle into Booster Box or Pack into Box.
 
 Return JSON only:
 {{
@@ -1164,6 +1170,70 @@ async def scrape_shop(page: Page, config: ShopConfig) -> List[Dict[str, object]]
     return scraped_data
 
 
+def canonical_key_for_grouping(name: str) -> str:
+    """Mirror web/lib/listings.ts canonicalKey for consistent product counts."""
+    text = unicodedata.normalize("NFD", name)
+    text = "".join(ch for ch in text if unicodedata.category(ch) != "Mn")
+    text = text.lower()
+    text = re.sub(r"pokemon\s*tcg[:\-\s]*", " ", text)
+    text = re.sub(r"pokemon[:\-\s]*", " ", text)
+    text = re.sub(r"[^a-z0-9]+", " ", text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def compute_run_stats(items: List[Dict[str, object]]) -> Dict[str, int]:
+    product_keys = set()
+    shops = set()
+    for item in items:
+        title = str(item.get("raw_title", "")).strip()
+        shop = str(item.get("shop_name", "")).strip()
+        if title:
+            product_keys.add(canonical_key_for_grouping(title))
+        if shop:
+            shops.add(shop)
+    return {
+        "in_stock_products": len(product_keys),
+        "shops_count": len(shops),
+        "in_stock_offers": len(items),
+    }
+
+
+def store_stats_snapshot(supabase_client: Client, stats: Dict[str, int]) -> None:
+    def _do() -> None:
+        try:
+            supabase_client.storage.get_bucket(STATS_BUCKET)
+        except Exception:
+            try:
+                supabase_client.storage.create_bucket(STATS_BUCKET, options={"public": False})
+            except Exception:
+                pass
+
+        snapshots: List[Dict[str, object]] = []
+        try:
+            raw = supabase_client.storage.from_(STATS_BUCKET).download(STATS_OBJECT)
+            payload = json.loads(raw.decode("utf-8"))
+            if isinstance(payload, dict) and isinstance(payload.get("snapshots"), list):
+                snapshots = payload["snapshots"]
+        except Exception:
+            snapshots = []
+
+        snapshots.append(
+            {
+                "scraped_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                **stats,
+            }
+        )
+        snapshots = snapshots[-MAX_STATS_SNAPSHOTS:]
+        body = json.dumps({"snapshots": snapshots}).encode("utf-8")
+        supabase_client.storage.from_(STATS_BUCKET).upload(
+            STATS_OBJECT,
+            body,
+            file_options={"content-type": "application/json", "upsert": "true"},
+        )
+
+    supabase_execute_with_retry(_do, "store_stats_snapshot")
+
+
 def flush_table(supabase_client: Client) -> None:
     def _do() -> None:
         supabase_client.table(LISTINGS_TABLE).delete().neq("id", DELETE_SENTINEL_ID).execute()
@@ -1312,6 +1382,18 @@ async def run_scraper(
             logger.warning("DB insert failed for %s: %s", item.get("raw_title"), exc)
 
     logger.info("Finished. Inserted %d/%d records.", inserted, len(final_items))
+    if inserted > 0:
+        try:
+            stats = compute_run_stats(final_items)
+            store_stats_snapshot(supabase_client, stats)
+            logger.info(
+                "Saved stats snapshot: %d products, %d shops, %d offers.",
+                stats["in_stock_products"],
+                stats["shops_count"],
+                stats["in_stock_offers"],
+            )
+        except Exception as exc:
+            logger.warning("Could not save stats snapshot: %s", exc)
     if inserted == 0:
         send_alert("Scraper finished with 0 inserted records", {"final_items": len(final_items), "shop_counts": shop_counts})
     elif inserted < len(final_items):

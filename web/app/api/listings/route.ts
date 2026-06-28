@@ -35,8 +35,10 @@ export async function GET() {
         meta: {
           totalOffers: result.totalOffers,
           shopCount: result.shopCount,
+          inStockProducts: result.inStockProducts,
           lastUpdated: result.lastUpdated,
           schema: result.schema,
+          deltas: result.deltas,
         },
       },
       { status: 200, headers: { "Cache-Control": CACHE_CONTROL } },

@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 /** One shop offer attached to a canonical product (comparison row). */
 export type ShopOffer = {
@@ -82,6 +82,13 @@ function canonicalKey(name: string): string {
     .trim();
 }
 
+function formatDisplayTitle(title: string): string {
+  return title
+    .replace(/^[\s\-–—:]+/, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function buildComparisonProduct(
   productId: string,
   displayTitle: string,
@@ -103,7 +110,7 @@ function buildComparisonProduct(
 
   return {
     productId,
-    displayTitle,
+    displayTitle: formatDisplayTitle(displayTitle),
     category,
     setName,
     imageUrl,
@@ -217,12 +224,67 @@ export function groupLegacyListings(rows: LegacyListingRow[]): ComparisonProduct
   return [...grouped.values()].sort((a, b) => b.score - a.score);
 }
 
+export type StatsDelta = {
+  inStockProducts: number | null;
+  shops: number | null;
+  inStockOffers: number | null;
+};
+
+type StatsSnapshot = {
+  in_stock_products: number;
+  shops_count: number;
+  in_stock_offers: number;
+};
+
+function isInStockStatus(status: string | null | undefined): boolean {
+  return String(status || "").toUpperCase().includes("IN_STOCK");
+}
+
+export function computeLegacyStats(rows: LegacyListingRow[]) {
+  const inStockRows = rows.filter((row) => isInStockStatus(row.stock_status));
+  const products = groupLegacyListings(rows);
+  const shops = new Set(inStockRows.map((row) => row.shop_name).filter(Boolean));
+
+  return {
+    inStockProducts: products.length,
+    shopCount: shops.size,
+    inStockOffers: inStockRows.length,
+  };
+}
+
+function deltaFromPrevious(current: number, previous: number | undefined): number | null {
+  if (previous === undefined) return null;
+  return current - previous;
+}
+
+async function fetchPreviousStatsSnapshot(supabase: SupabaseClient): Promise<StatsSnapshot | null> {
+  const bucket = "pokedeals-meta";
+  const objectPath = "stats_snapshots.json";
+
+  const { data, error } = await supabase.storage.from(bucket).download(objectPath);
+  if (error || !data) return null;
+
+  try {
+    const payload = JSON.parse(await data.text()) as {
+      snapshots?: StatsSnapshot[];
+    };
+    const snapshots = payload.snapshots ?? [];
+    if (snapshots.length === 0) return null;
+    if (snapshots.length === 1) return snapshots[0];
+    return snapshots[snapshots.length - 2];
+  } catch {
+    return null;
+  }
+}
+
 export type ListingsFetchResult = {
   products: ComparisonProduct[];
   totalOffers: number;
   shopCount: number;
+  inStockProducts: number;
   lastUpdated: string | null;
   schema: "normalized" | "legacy";
+  deltas: StatsDelta;
 };
 
 /**
@@ -249,16 +311,35 @@ export async function fetchComparisonProducts(): Promise<ListingsFetchResult> {
 
     const rows = (data ?? []) as ListingRow[];
     const products = groupNormalizedListings(rows);
-    const shops = new Set(rows.map((r) => r.shop_name));
+    const inStockRows = rows.filter((row) => row.stock_status === "in_stock");
+    const shops = new Set(inStockRows.map((row) => row.shop_name));
     const lastUpdated =
       rows.map((r) => r.updated_at).filter(Boolean).sort().slice(-1)[0] ?? null;
+    const previousSnapshot = await fetchPreviousStatsSnapshot(supabase);
+    const currentStats = {
+      inStockProducts: products.length,
+      shopCount: shops.size,
+      inStockOffers: inStockRows.length,
+    };
 
     return {
       products,
-      totalOffers: rows.length,
-      shopCount: shops.size,
+      totalOffers: currentStats.inStockOffers,
+      shopCount: currentStats.shopCount,
+      inStockProducts: currentStats.inStockProducts,
       lastUpdated,
       schema: "normalized",
+      deltas: {
+        inStockProducts: deltaFromPrevious(
+          currentStats.inStockProducts,
+          previousSnapshot?.in_stock_products,
+        ),
+        shops: deltaFromPrevious(currentStats.shopCount, previousSnapshot?.shops_count),
+        inStockOffers: deltaFromPrevious(
+          currentStats.inStockOffers,
+          previousSnapshot?.in_stock_offers,
+        ),
+      },
     };
   }
 
@@ -272,15 +353,25 @@ export async function fetchComparisonProducts(): Promise<ListingsFetchResult> {
 
   const rows = (data ?? []) as LegacyListingRow[];
   const products = groupLegacyListings(rows);
-  const shops = new Set(rows.map((r) => r.shop_name).filter(Boolean));
+  const stats = computeLegacyStats(rows);
   const lastUpdated =
     rows.map((r) => r.updated_at || r.created_at).filter(Boolean).sort().slice(-1)[0] ?? null;
+  const previousSnapshot = await fetchPreviousStatsSnapshot(supabase);
 
   return {
     products,
-    totalOffers: rows.length,
-    shopCount: shops.size,
+    totalOffers: stats.inStockOffers,
+    shopCount: stats.shopCount,
+    inStockProducts: stats.inStockProducts,
     lastUpdated,
     schema: "legacy",
+    deltas: {
+      inStockProducts: deltaFromPrevious(
+        stats.inStockProducts,
+        previousSnapshot?.in_stock_products,
+      ),
+      shops: deltaFromPrevious(stats.shopCount, previousSnapshot?.shops_count),
+      inStockOffers: deltaFromPrevious(stats.inStockOffers, previousSnapshot?.in_stock_offers),
+    },
   };
 }

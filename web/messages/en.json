@@ -69,6 +69,15 @@
       "median": "The middle price among all current offers.",
       "spread": "Gap between the highest and lowest listed prices.",
       "delta": "How much the best price differs from median (in %). Negative means better than median."
+    },
+    "sort": {
+      "rank": "Sort by rank",
+      "product": "Sort by product name",
+      "lowestPrice": "Sort by lowest price",
+      "median": "Sort by median price",
+      "priceGap": "Sort by price gap",
+      "delta": "Sort by delta",
+      "offers": "Sort by number of offers"
     }
   },
   "bento": {
@@ -79,7 +88,8 @@
     "metricOffers": "Offers = in-stock shop offers",
     "metricMedian": "Median = middle price among offers",
     "metricGap": "Price Gap = highest - lowest price",
-    "metricDelta": "Delta = best vs median (%)"
+    "metricDelta": "Delta = best vs median (%)",
+    "vsLastUpdate": "vs last update"
   },
   "filters": {
     "allLanguages": "All languages",

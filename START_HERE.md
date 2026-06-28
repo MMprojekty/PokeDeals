@@ -103,14 +103,24 @@ Replace `YOUR-USERNAME` with your GitHub username.
 | `SUPABASE_SERVICE_ROLE_KEY` | From Supabase → Settings → API Keys → Legacy → service_role |
 | `OPENAI_API_KEY` | Your OpenAI key (`sk-...`) |
 
-### C. Run it
+### C. One-command setup (after adding token once)
 
-1. GitHub repo → **Actions** tab
-2. Click **Scrape shop prices** → **Run workflow** → **Run workflow**
-3. Wait ~5–10 minutes. Green check = success.
-4. Refresh **http://localhost:3000** — new prices appear.
+1. Open `scraper/.env` and add your GitHub token on one line:
+   ```env
+   GITHUB_TOKEN=ghp_your_token_here
+   ```
+   Create a **classic** token at [github.com/settings/tokens](https://github.com/settings/tokens) with **`repo`** and **`workflow`** checked.
 
-After that it runs **automatically every day** at 06:00 UTC. No Mac background jobs.
+2. Run this — it pushes code, sets all GitHub secrets, and starts the scraper:
+
+```bash
+cd ~/Downloads/PokeDeals
+python3 scripts/setup_cloud.py
+```
+
+3. Watch progress: **https://github.com/MMprojekty/PokeDeals/actions**
+
+After the first run, the scraper repeats **automatically every day**. No more copy-paste.
 
 ---
 

@@ -1,101 +1,111 @@
 {
   "common": {
     "appName": "PokéDeals",
-    "retry": "Újra",
-    "loading": "Adatok betöltése…",
-    "noData": "Nincs termék az aktuális szűrőkkel.",
+    "retry": "Újrapróbálkozás",
+    "loading": "Listák betöltése…",
+    "noData": "Jelenlegi szűrők mellett nem található termék.",
     "lastUpdated": "Utolsó frissítés",
     "notAvailable": "N/A"
   },
   "nav": {
-    "terms": "ÁSZF",
+    "terms": "Felhasználási feltételek",
     "privacy": "Adatvédelem",
     "home": "Főoldal"
   },
   "home": {
-    "pageTitle": "Pokemon TCG árak magyar webshopokban",
-    "pageSubtitle": "{offers} aktív ajánlat, {products} egyedi termékhez.",
+    "pageTitle": "Pokemon TCG Árak Magyar Boltjaiban",
+    "pageSubtitle": "Követjük a {products} egyedi terméket {offers} élő ajánlatban.",
     "comparePrices": "Árak összehasonlítása",
-    "trendingNow": "Felkapott most",
-    "bestVsMedian": "Legjobb ajánlat a mediánhoz",
+    "trendingNow": "Jelenleg népszerű",
+    "bestVsMedian": "Legjobb ajánlat vs Medián",
     "back": "Vissza a főoldalra",
-    "comparing": "Összehasonlítva",
-    "storeOffers": "bolti ajánlat",
-    "viewDeal": "Ajánlat megnyitása",
-    "listingsLoadError": "Nem sikerült betölteni a listázást."
+    "comparing": "Összehasonlítás",
+    "storeOffers": "bolt ajánlatok",
+    "viewDeal": "Ajánlat megtekintése",
+    "listingsLoadError": "Nem sikerült betölteni a listákat."
   },
   "stock": {
-    "inStock": "Raktáron",
-    "outOfStock": "Nincs raktáron",
+    "inStock": "Készleten",
+    "outOfStock": "Nincs készleten",
     "preorder": "Előrendelés"
   },
   "categories": {
     "all": "Összes",
-    "boosterBoxes": "Booster Boxok",
-    "bundles": "Bundle-ök",
+    "boosterBoxes": "Booster dobozok",
+    "bundles": "Csomagok",
     "boosterPacks": "Booster csomagok",
     "etbs": "ETB-k",
-    "tinsBlisters": "Tinek / Bliszterek",
+    "tinsBlisters": "Fém dobozok / Bliszterek",
     "boosterBox": "Booster doboz",
-    "eliteTrainerBox": "Elite Trainer Box",
+    "eliteTrainerBox": "Elite Trainer doboz",
     "boosterPack": "Booster csomag",
-    "boosterBundle": "Booster bundle",
-    "tin": "Tin",
+    "boosterBundle": "Booster csomag",
+    "tin": "Fém doboz",
     "blister": "Bliszter",
-    "collectionBox": "Kollekciós doboz",
+    "collectionBox": "Gyűjtemény doboz",
     "starterDeck": "Kezdő pakli"
   },
   "pricing": {
     "marketMedian": "Piaci medián",
-    "lowest": "Legjobb",
+    "lowest": "Legalacsonyabb",
     "median": "Medián",
-    "priceGap": "Árrés",
-    "delta": "Eltérés",
-    "offers": "Ajánlat",
-    "offersAndMedian": "Ajánlat / Medián",
-    "spread": "Árrés"
+    "priceGap": "Árkülönbség",
+    "delta": "Delta",
+    "offers": "Ajánlatok",
+    "offersAndMedian": "Ajánlatok / Medián",
+    "spread": "Árkülönbség"
   },
   "table": {
     "headers": {
       "rank": "#",
       "product": "Termék",
-      "lowestPrice": "Legjobb ár",
+      "lowestPrice": "Legalacsonyabb ár",
       "median": "Medián",
-      "priceGap": "Árrés",
-      "delta": "Eltérés",
+      "priceGap": "Árkülönbség",
+      "delta": "Delta",
       "offers": "Ajánlatok"
     },
     "tooltips": {
-      "median": "A medián ár (a középső ár) az összes aktuális ajánlat alapján.",
-      "spread": "A legmagasabb és legalacsonyabb bolti ár közti különbség.",
-      "delta": "A legjobb ár eltérése a mediánhoz képest (%). Negatív érték = jobb a mediánnál."
+      "median": "Az összes aktuális ajánlat közötti középső ár.",
+      "spread": "Különbség a legmagasabb és legalacsonyabb ár között.",
+      "delta": "Mennyivel tér el a legjobb ár a mediántól (százalékban). Negatív érték jobb, mint a medián."
+    },
+    "sort": {
+      "rank": "Rendezés rang szerint",
+      "product": "Rendezés termék név szerint",
+      "lowestPrice": "Rendezés legalacsonyabb ár szerint",
+      "median": "Rendezés medián ár szerint",
+      "priceGap": "Rendezés árkülönbség szerint",
+      "delta": "Rendezés delta szerint",
+      "offers": "Rendezés ajánlatok száma szerint"
     }
   },
   "bento": {
-    "inStockProducts": "Raktáron lévő termékek",
+    "inStockProducts": "Készleten lévő termékek",
     "shops": "Boltok",
-    "inStockOffers": "Raktáron lévő ajánlatok",
-    "metricsTitle": "Mit jelentenek a számok?",
-    "metricOffers": "Ajánlatok = raktáron lévő bolti ajánlatok száma",
-    "metricMedian": "Medián = a középső ár az aktuális ajánlatok között",
-    "metricGap": "Árrés = legmagasabb mínusz legalacsonyabb ár",
-    "metricDelta": "Eltérés (Delta) = legjobb ár vs medián (%)"
+    "inStockOffers": "Készleten lévő ajánlatok",
+    "metricsTitle": "Mit jelentenek a számok",
+    "metricOffers": "Ajánlatok = készleten lévő bolt ajánlatok",
+    "metricMedian": "Medián = középső ár az ajánlatok között",
+    "metricGap": "Árkülönbség = legmagasabb - legalacsonyabb ár",
+    "metricDelta": "Delta = legjobb vs medián (%)",
+    "vsLastUpdate": "az előző frissítéshez képest"
   },
   "filters": {
-    "allLanguages": "Minden nyelv",
+    "allLanguages": "Összes nyelv",
     "englishOnly": "Csak angol"
   },
   "health": {
-    "fresh": "Friss adat",
-    "stale": "Régi / ellenőrizd a folyamatot",
-    "empty": "Nincs sor az adatbázisban",
-    "unknown": "Státusz nem elérhető",
-    "tooltipPrefix": "Rendszer állapot",
-    "loadFailed": "Nem sikerült elérni az /api/health végpontot.",
+    "fresh": "Friss adatok",
+    "stale": "Elavult / ellenőrizd a pipeline-t",
+    "empty": "Nincsenek sorok az adatbázisban",
+    "unknown": "Állapotellenőrzés sikertelen",
+    "tooltipPrefix": "Ops állapot",
+    "loadFailed": "Nem sikerült betölteni az /api/health-t.",
     "loading": "Állapot betöltése…",
-    "tooltipDetail": "{prefix}: {age} perce futott az utolsó feltöltés · {inStock} raktári sor / {total} sor összesen"
+    "tooltipDetail": "{prefix}: {age} perc telt el az utolsó lekérdezés óta · {inStock} készleten lévő sor / {total} sor összesen"
   },
   "footer": {
-    "disclaimer": "Az árakat és a készletet a boltok határozzák meg — vásárlás előtt mindig ellenőrizd."
+    "disclaimer": "Az árakat és a rendelkezésre állást a kereskedők állítják be — mindig ellenőrizd vásárlás előtt."
   }
 }
