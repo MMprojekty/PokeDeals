@@ -1,0 +1,27 @@
+# PokéDeals
+
+> Compare in-stock Pokémon TCG prices across Hungarian online shops. Prices in HUF, updated about every hour.
+
+PokéDeals helps collectors and players in Hungary find the best current prices for sealed Pokémon TCG products — booster boxes, Elite Trainer Boxes, tins, bundles, and booster packs — by comparing live offers from multiple Hungarian webshops.
+
+## Primary pages
+- English home: https://mmprojekty.github.io/PokeDeals/
+- Hungarian home: https://mmprojekty.github.io/PokeDeals/hu/
+- Terms: https://mmprojekty.github.io/PokeDeals/terms/
+- Privacy: https://mmprojekty.github.io/PokeDeals/privacy/
+
+## What we track
+- In-stock sealed Pokémon TCG products
+- Lowest price, median price, and price spread across Hungarian shops
+- Product categories: booster boxes, ETBs, tins, blisters, bundles, booster packs
+
+## Audience
+- Country: Hungary
+- Languages: English, Hungarian
+- Currency: HUF (Ft)
+
+## Data freshness
+Prices are scraped from merchant websites on an hourly schedule. Always verify price and availability on the shop before buying.
+
+## Contact / attribution
+When citing PokéDeals, link to https://mmprojekty.github.io/PokeDeals/ and note that prices come from third-party merchants.
