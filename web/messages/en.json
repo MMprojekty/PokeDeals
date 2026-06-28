@@ -98,6 +98,8 @@
   "health": {
     "fresh": "Fresh data",
     "stale": "Stale / check pipeline",
+    "outOfDateHours": "{hours}h since last scrape",
+    "outOfDateMinutes": "{minutes}m since last scrape",
     "empty": "No rows in database",
     "unknown": "Status check failed",
     "tooltipPrefix": "Ops health",

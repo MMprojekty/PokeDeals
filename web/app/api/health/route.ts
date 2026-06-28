@@ -5,6 +5,8 @@ const supabaseUrl = process.env.SUPABASE_URL;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const listingsTable = process.env.SUPABASE_LISTINGS_TABLE || "shop_listings";
 const CACHE_CONTROL = "public, s-maxage=30, stale-while-revalidate=60";
+// Hourly scraper — treat data as fresh until ~90 min old (next run + buffer).
+const STALE_AFTER_MINUTES = Number(process.env.SCRAPE_STALE_MINUTES || 90);
 
 export const revalidate = 30;
 
@@ -49,7 +51,7 @@ export async function GET() {
 
   const latestScrapeAt = latestEpoch > 0 ? new Date(latestEpoch).toISOString() : null;
   const ageMinutes = latestEpoch > 0 ? Math.floor((Date.now() - latestEpoch) / 60000) : null;
-  const stale = ageMinutes === null ? true : ageMinutes > 240;
+  const stale = ageMinutes === null ? true : ageMinutes > STALE_AFTER_MINUTES;
   const zeroShops = Object.entries(shopCounts)
     .filter(([, count]) => count === 0)
     .map(([name]) => name);

@@ -216,7 +216,15 @@ export default function Home() {
     if (healthFetchFailed) return t("health.unknown");
     if (!healthInfo) return "…";
     if (healthInfo.badgeLevel === "red") return t("health.empty");
-    if (healthInfo.badgeLevel === "amber") return t("health.stale");
+    if (healthInfo.badgeLevel === "amber") {
+      if (healthInfo.totalInStockRows === 0) return t("health.empty");
+      if (healthInfo.stale && healthInfo.ageMinutes !== null) {
+        const hours = Math.floor(healthInfo.ageMinutes / 60);
+        if (hours >= 1) return t("health.outOfDateHours", { hours });
+        return t("health.outOfDateMinutes", { minutes: healthInfo.ageMinutes });
+      }
+      return t("health.stale");
+    }
     return t("health.fresh");
   };
 

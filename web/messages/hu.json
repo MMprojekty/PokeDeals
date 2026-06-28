@@ -98,6 +98,8 @@
   "health": {
     "fresh": "Friss adatok",
     "stale": "Elavult / ellenőrizd a pipeline-t",
+    "outOfDateHours": "{hours} órája volt az utolsó lekérdezés",
+    "outOfDateMinutes": "{minutes} perce volt az utolsó lekérdezés",
     "empty": "Nincsenek sorok az adatbázisban",
     "unknown": "Állapotellenőrzés sikertelen",
     "tooltipPrefix": "Ops állapot",
