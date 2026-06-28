@@ -42,6 +42,8 @@ EUR_TO_HUF_RATE = 395.0
 LISTINGS_TABLE = os.getenv("SUPABASE_LISTINGS_TABLE", "shop_listings")
 STATS_BUCKET = "pokedeals-meta"
 STATS_OBJECT = "stats_snapshots.json"
+PUBLIC_STATUS_BUCKET = "pokedeals-public"
+PUBLIC_STATUS_OBJECT = "status.json"
 MAX_STATS_SNAPSHOTS = 30
 DELETE_SENTINEL_ID = "00000000-0000-0000-0000-000000000000"
 MIN_EXPECTED_PRODUCTS = int(os.getenv("MIN_EXPECTED_PRODUCTS", "30"))
@@ -1234,6 +1236,40 @@ def store_stats_snapshot(supabase_client: Client, stats: Dict[str, int]) -> None
     supabase_execute_with_retry(_do, "store_stats_snapshot")
 
 
+def store_public_scrape_status(
+    supabase_client: Client,
+    stats: Dict[str, int],
+    total_rows: int,
+) -> None:
+    def _do() -> None:
+        try:
+            supabase_client.storage.get_bucket(PUBLIC_STATUS_BUCKET)
+        except Exception:
+            try:
+                supabase_client.storage.create_bucket(
+                    PUBLIC_STATUS_BUCKET,
+                    options={"public": True},
+                )
+            except Exception:
+                pass
+
+        latest = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+        body = json.dumps(
+            {
+                "latestScrapeAt": latest,
+                "totalInStockRows": int(stats.get("in_stock_offers", 0)),
+                "totalRows": int(total_rows),
+            }
+        ).encode("utf-8")
+        supabase_client.storage.from_(PUBLIC_STATUS_BUCKET).upload(
+            PUBLIC_STATUS_OBJECT,
+            body,
+            file_options={"content-type": "application/json", "upsert": "true"},
+        )
+
+    supabase_execute_with_retry(_do, "store_public_scrape_status")
+
+
 def flush_table(supabase_client: Client) -> None:
     def _do() -> None:
         supabase_client.table(LISTINGS_TABLE).delete().neq("id", DELETE_SENTINEL_ID).execute()
@@ -1400,6 +1436,7 @@ async def run_scraper(
         try:
             stats = compute_run_stats(final_items)
             store_stats_snapshot(supabase_client, stats)
+            store_public_scrape_status(supabase_client, stats, inserted)
             logger.info(
                 "Saved stats snapshot: %d products, %d shops, %d offers.",
                 stats["in_stock_products"],

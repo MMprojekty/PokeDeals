@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { usePathname, useRouter, Link } from "@/i18n/navigation";
 import type { ClientComparisonRow, InitialListingsPayload } from "@/lib/listings-client";
+import { fetchPublicHealthSnapshot } from "@/lib/public-health";
 
 type ShopOffer = ClientComparisonRow["offers"][number];
 type ComparisonRow = ClientComparisonRow;
@@ -123,26 +124,33 @@ export function HomeClient({ initialData }: { initialData?: InitialListingsPaylo
   async function fetchHealthSnapshot() {
     try {
       const response = await fetch("/api/health", { cache: "no-store" });
-      const payload = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        setHealthFetchFailed(true);
-        setHealthInfo(null);
+      if (response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        setHealthFetchFailed(false);
+        const badgeLevel = (payload?.badgeLevel as "green" | "amber" | "red") || "amber";
+        setHealthInfo({
+          badgeLevel,
+          ageMinutes: typeof payload.ageMinutes === "number" ? payload.ageMinutes : null,
+          latestScrapeAt: typeof payload.latestScrapeAt === "string" ? payload.latestScrapeAt : null,
+          totalInStockRows: Number(payload.totalInStockRows) || 0,
+          totalRows: Number(payload.totalRows) || 0,
+          stale: Boolean(payload.stale),
+        });
         return;
       }
-      setHealthFetchFailed(false);
-      const badgeLevel = (payload?.badgeLevel as "green" | "amber" | "red") || "amber";
-      setHealthInfo({
-        badgeLevel,
-        ageMinutes: typeof payload.ageMinutes === "number" ? payload.ageMinutes : null,
-        latestScrapeAt: typeof payload.latestScrapeAt === "string" ? payload.latestScrapeAt : null,
-        totalInStockRows: Number(payload.totalInStockRows) || 0,
-        totalRows: Number(payload.totalRows) || 0,
-        stale: Boolean(payload.stale),
-      });
     } catch {
-      setHealthFetchFailed(true);
-      setHealthInfo(null);
+      // Fall back to public Supabase status JSON (GitHub Pages / static hosting).
     }
+
+    const publicHealth = await fetchPublicHealthSnapshot();
+    if (publicHealth) {
+      setHealthFetchFailed(false);
+      setHealthInfo(publicHealth);
+      return;
+    }
+
+    setHealthFetchFailed(true);
+    setHealthInfo(null);
   }
 
   async function fetchAndGroupData() {
@@ -152,6 +160,10 @@ export function HomeClient({ initialData }: { initialData?: InitialListingsPaylo
       const response = await fetch("/api/listings", { cache: "no-store" });
       const payload = await response.json().catch(() => null);
       if (!response.ok) {
+        if (process.env.NEXT_PUBLIC_SUPABASE_URL) {
+          window.location.reload();
+          return;
+        }
         console.error("Error fetching data:", response.statusText);
         setListingsError(t("home.listingsLoadError"));
         setProducts([]);

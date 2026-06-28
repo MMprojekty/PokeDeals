@@ -143,6 +143,7 @@ def main() -> int:
     parser.add_argument("--skip-run", action="store_true")
     parser.add_argument("--run-only", action="store_true", help="Only trigger the cloud scraper workflow.")
     parser.add_argument("--vercel", action="store_true", help="Also configure Vercel hosting after push.")
+    parser.add_argument("--pages", action="store_true", help="Enable GitHub Pages hosting after push.")
     args = parser.parse_args()
 
     env = load_env(SCRAPER_ENV)
@@ -200,6 +201,17 @@ def main() -> int:
         print("Configuring Vercel hosting...")
         result = subprocess.run(
             [sys.executable, str(ROOT / "scripts" / "setup_vercel.py"), "--github-token", token],
+            cwd=ROOT,
+            check=False,
+        )
+        if result.returncode != 0:
+            print("Vercel setup skipped — falling back to GitHub Pages.")
+            args.pages = True
+
+    if args.pages:
+        print("Configuring GitHub Pages hosting...")
+        result = subprocess.run(
+            [sys.executable, str(ROOT / "scripts" / "setup_pages.py"), "--github-token", token],
             cwd=ROOT,
             check=False,
         )
