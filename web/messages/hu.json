@@ -3,7 +3,7 @@
     "appName": "PokéDeals",
     "retry": "Újrapróbálkozás",
     "loading": "Listák betöltése…",
-    "noData": "Nincs termék a jelenlegi szűrők alapján.",
+    "noData": "A jelenlegi szűrőkkel nem található termék.",
     "lastUpdated": "Utolsó frissítés",
     "notAvailable": "N/A"
   },
@@ -13,9 +13,9 @@
     "home": "Főoldal"
   },
   "home": {
-    "pageTitle": "Pokemon TCG Árak Magyar Boltjaiban",
-    "pageSubtitle": "{offers} élő ajánlat között {products} egyedi termék nyomon követése.",
-    "comparePrices": "Árak Összehasonlítása",
+    "pageTitle": "Pokemon TCG árak magyar boltokban",
+    "pageSubtitle": "Követjük a {products} egyedi terméket {offers} élő ajánlatban.",
+    "comparePrices": "Árak összehasonlítása",
     "trendingNow": "Jelenleg népszerű",
     "bestVsMedian": "Legjobb ajánlat vs Medián",
     "back": "Vissza a főoldalra",
@@ -25,22 +25,22 @@
     "listingsLoadError": "Nem sikerült betölteni a listákat."
   },
   "stock": {
-    "inStock": "Készleten",
-    "outOfStock": "Nincs készleten",
+    "inStock": "Raktáron",
+    "outOfStock": "Nincs raktáron",
     "preorder": "Előrendelés"
   },
   "categories": {
-    "all": "Összes",
+    "all": "Minden",
     "boosterBoxes": "Booster dobozok",
     "bundles": "Csomagok",
     "boosterPacks": "Booster csomagok",
     "etbs": "ETB-k",
-    "tinsBlisters": "Fém dobozok / Bliszterek",
+    "tinsBlisters": "Dobozok / Bliszterek",
     "boosterBox": "Booster doboz",
     "eliteTrainerBox": "Elite Trainer doboz",
     "boosterPack": "Booster csomag",
     "boosterBundle": "Booster csomag",
-    "tin": "Fém doboz",
+    "tin": "Doboz",
     "blister": "Bliszter",
     "collectionBox": "Gyűjtemény doboz",
     "starterDeck": "Kezdő pakli"
@@ -66,7 +66,7 @@
       "offers": "Ajánlatok"
     },
     "tooltips": {
-      "median": "Az összes aktuális ajánlat közötti középső ár.",
+      "median": "A középső ár az összes aktuális ajánlat között.",
       "spread": "Különbség a legmagasabb és legalacsonyabb árak között.",
       "delta": "Mennyivel tér el a legjobb ár a mediántól (százalékban). Negatív érték jobb, mint a medián."
     },
@@ -81,31 +81,31 @@
     }
   },
   "bento": {
-    "inStockProducts": "Készleten lévő termékek",
+    "inStockProducts": "Raktáron lévő termékek",
     "shops": "Boltok",
-    "inStockOffers": "Készleten lévő ajánlatok",
+    "inStockOffers": "Raktáron lévő ajánlatok",
     "metricsTitle": "Mit jelentenek a számok",
-    "metricOffers": "Ajánlatok = készleten lévő bolt ajánlatok",
+    "metricOffers": "Ajánlatok = raktáron lévő bolt ajánlatok",
     "metricMedian": "Medián = középső ár az ajánlatok között",
     "metricGap": "Árkülönbség = legmagasabb - legalacsonyabb ár",
     "metricDelta": "Delta = legjobb vs medián (%)",
     "vsLastUpdate": "vs utolsó frissítés"
   },
   "filters": {
-    "allLanguages": "Összes nyelv",
+    "allLanguages": "Minden nyelv",
     "englishOnly": "Csak angol"
   },
   "health": {
     "fresh": "Friss adatok",
-    "stale": "Elavult / ellenőrizd a pipeline-t",
-    "outOfDateHours": "{hours} órája volt az utolsó lekérdezés",
-    "outOfDateMinutes": "{minutes} perce volt az utolsó lekérdezés",
+    "stale": "Elavult / ellenőrizd a folyamatot",
+    "outOfDateHours": "{hours} óra telt el az utolsó lekérdezés óta",
+    "outOfDateMinutes": "{minutes} perc telt el az utolsó lekérdezés óta",
     "empty": "Nincsenek sorok az adatbázisban",
     "unknown": "Állapotellenőrzés sikertelen",
     "tooltipPrefix": "Ops állapot",
-    "loadFailed": "Nem sikerült betölteni /api/health.",
+    "loadFailed": "Nem sikerült betölteni a /api/health-t.",
     "loading": "Állapot betöltése…",
-    "tooltipDetail": "{prefix}: {age} perc telt el az utolsó lekérdezés óta · {inStock} készleten lévő sor / {total} összes sor"
+    "tooltipDetail": "{prefix}: {age} perc telt el az utolsó lekérdezés óta · {inStock} raktáron lévő sor / {total} sor összesen"
   },
   "footer": {
     "disclaimer": "Az árakat és a rendelkezésre állást a kereskedők állítják be — mindig ellenőrizd vásárlás előtt."
