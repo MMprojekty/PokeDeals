@@ -3,7 +3,7 @@
     "appName": "PokéDeals",
     "retry": "Újrapróbálkozás",
     "loading": "Listák betöltése…",
-    "noData": "A jelenlegi szűrőkkel nem található termék.",
+    "noData": "Jelenlegi szűrőkkel nem található termék.",
     "lastUpdated": "Utolsó frissítés",
     "notAvailable": "N/A"
   },
@@ -14,7 +14,7 @@
   },
   "home": {
     "pageTitle": "Pokemon TCG árak magyar boltokban",
-    "pageSubtitle": "Követjük a {products} egyedi terméket {offers} élő ajánlatban.",
+    "pageSubtitle": "{offers} élő ajánlat között {products} egyedi termék nyomon követése.",
     "comparePrices": "Árak összehasonlítása",
     "trendingNow": "Jelenleg népszerű",
     "bestVsMedian": "Legjobb ajánlat vs Medián",
@@ -25,8 +25,8 @@
     "listingsLoadError": "Nem sikerült betölteni a listákat."
   },
   "stock": {
-    "inStock": "Raktáron",
-    "outOfStock": "Nincs raktáron",
+    "inStock": "Készleten",
+    "outOfStock": "Nincs készleten",
     "preorder": "Előrendelés"
   },
   "categories": {
@@ -35,12 +35,12 @@
     "bundles": "Csomagok",
     "boosterPacks": "Booster csomagok",
     "etbs": "ETB-k",
-    "tinsBlisters": "Dobozok / Bliszterek",
+    "tinsBlisters": "Fém dobozok / Bliszterek",
     "boosterBox": "Booster doboz",
     "eliteTrainerBox": "Elite Trainer doboz",
     "boosterPack": "Booster csomag",
     "boosterBundle": "Booster csomag",
-    "tin": "Doboz",
+    "tin": "Fém doboz",
     "blister": "Bliszter",
     "collectionBox": "Gyűjtemény doboz",
     "starterDeck": "Kezdő pakli"
@@ -66,7 +66,7 @@
       "offers": "Ajánlatok"
     },
     "tooltips": {
-      "median": "A középső ár az összes aktuális ajánlat között.",
+      "median": "Az összes aktuális ajánlat közötti középső ár.",
       "spread": "Különbség a legmagasabb és legalacsonyabb árak között.",
       "delta": "Mennyivel tér el a legjobb ár a mediántól (százalékban). Negatív érték jobb, mint a medián."
     },
@@ -81,11 +81,11 @@
     }
   },
   "bento": {
-    "inStockProducts": "Raktáron lévő termékek",
+    "inStockProducts": "Készleten lévő termékek",
     "shops": "Boltok",
-    "inStockOffers": "Raktáron lévő ajánlatok",
+    "inStockOffers": "Készleten lévő ajánlatok",
     "metricsTitle": "Mit jelentenek a számok",
-    "metricOffers": "Ajánlatok = raktáron lévő bolt ajánlatok",
+    "metricOffers": "Ajánlatok = készleten lévő bolt ajánlatok",
     "metricMedian": "Medián = középső ár az ajánlatok között",
     "metricGap": "Árkülönbség = legmagasabb - legalacsonyabb ár",
     "metricDelta": "Delta = legjobb vs medián (%)",
@@ -98,21 +98,21 @@
   "health": {
     "fresh": "Friss adatok",
     "stale": "Elavult / ellenőrizd a folyamatot",
-    "scrapeStatus": "Utolsó lekérdezés: {time} · {age}",
-    "justNow": "épp most",
-    "minutesAgo": "{minutes} perce",
-    "hoursAgo": "{hours} órája",
-    "hoursMinutesAgo": "{hours} órája {minutes} perce",
-    "outOfDateHours": "{hours} óra telt el az utolsó lekérdezés óta",
-    "outOfDateMinutes": "{minutes} perc telt el az utolsó lekérdezés óta",
+    "scrapeStatus": "Utolsó lekérés: {time} · {age}",
+    "justNow": "éppen most",
+    "minutesAgo": "{minutes} perc ezelőtt",
+    "hoursAgo": "{hours} óra ezelőtt",
+    "hoursMinutesAgo": "{hours} óra {minutes} perc ezelőtt",
+    "outOfDateHours": "{hours} óra telt el az utolsó lekérés óta",
+    "outOfDateMinutes": "{minutes} perc telt el az utolsó lekérés óta",
     "empty": "Nincsenek sorok az adatbázisban",
     "unknown": "Állapotellenőrzés sikertelen",
     "tooltipPrefix": "Ops állapot",
-    "loadFailed": "Nem sikerült betölteni a /api/health-t.",
+    "loadFailed": "Nem sikerült betölteni /api/health.",
     "loading": "Állapot betöltése…",
-    "tooltipDetail": "{prefix}: {age} perc telt el az utolsó lekérdezés óta · {inStock} raktáron lévő sor / {total} sor összesen"
+    "tooltipDetail": "{prefix}: {age} perc telt el az utolsó lekérés óta · {inStock} készleten lévő sor / {total} sor összesen"
   },
   "footer": {
-    "disclaimer": "Az árakat és a rendelkezésre állást a kereskedők állítják be — mindig ellenőrizd vásárlás előtt."
+    "disclaimer": "Az árak és elérhetőség a kereskedőktől származnak — mindig ellenőrizd vásárlás előtt."
   }
 }
