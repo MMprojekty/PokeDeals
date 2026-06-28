@@ -2,8 +2,9 @@ name: Scraper watchdog
 
 on:
   schedule:
-    # Backup check 20 min after the main hourly scrape slot.
-    - cron: "25 * * * *"
+    # Backup checks after the main :05 scrape slot (catches missed GitHub cron runs).
+    - cron: "20 * * * *"
+    - cron: "50 * * * *"
   workflow_dispatch:
 
 permissions:
@@ -16,13 +17,16 @@ jobs:
     timeout-minutes: 5
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Check data age in Supabase
         id: stale
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           SUPABASE_LISTINGS_TABLE: shop_listings
-          SCRAPE_STALE_MINUTES: "65"
+          SCRAPE_STALE_MINUTES: "55"
         run: python3 scripts/check_scrape_stale.py
 
       - name: Trigger scraper if data is stale

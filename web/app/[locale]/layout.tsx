@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import { Link } from "@/i18n/navigation";
 import { routing } from "@/i18n/routing";
 import { getTranslations } from "next-intl/server";
+import { getSiteUrl } from "@/lib/site";
 import "../globals.css";
 
 const geistSans = Geist({
@@ -22,18 +23,17 @@ export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
 }
 
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ locale: string }>;
-}): Promise<Metadata> {
-  const { locale } = await params;
-  const t = await getTranslations({ locale, namespace: "home" });
-  return {
-    title: `PokéDeals — ${t("pageTitle")}`,
-    description: "Compare in-stock Pokémon TCG prices across Hungarian online shops.",
-  };
-}
+export const metadata: Metadata = {
+  metadataBase: new URL(getSiteUrl()),
+  applicationName: "PokéDeals",
+  creator: "PokéDeals",
+  publisher: "PokéDeals",
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
+};
 
 export default async function LocaleLayout({
   children,

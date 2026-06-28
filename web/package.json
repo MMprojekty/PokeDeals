@@ -7,9 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "translate:hu": "python3 ../scripts/translate_web_messages.py",
-    "predev": "python3 ../scripts/translate_web_messages.py --if-stale",
-    "prebuild": "python3 ../scripts/translate_web_messages.py --if-stale"
+    "translate:hu": "python3 ../scripts/translate_web_messages.py"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.104.0",

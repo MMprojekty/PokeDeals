@@ -142,6 +142,7 @@ def main() -> int:
     parser.add_argument("--skip-secrets", action="store_true")
     parser.add_argument("--skip-run", action="store_true")
     parser.add_argument("--run-only", action="store_true", help="Only trigger the cloud scraper workflow.")
+    parser.add_argument("--vercel", action="store_true", help="Also configure Vercel hosting after push.")
     args = parser.parse_args()
 
     env = load_env(SCRAPER_ENV)
@@ -193,7 +194,17 @@ def main() -> int:
     if not args.skip_run:
         print("Starting cloud scraper...")
         trigger_workflow(token)
-        print(f"Done. Open https://github.com/{REPO}/actions to watch the run.")
+        print(f"Done. Open https://github.com/{REPO}/actions to watch the scraper.")
+
+    if args.vercel:
+        print("Configuring Vercel hosting...")
+        result = subprocess.run(
+            [sys.executable, str(ROOT / "scripts" / "setup_vercel.py"), "--github-token", token],
+            cwd=ROOT,
+            check=False,
+        )
+        if result.returncode != 0:
+            return result.returncode
 
     return 0
 

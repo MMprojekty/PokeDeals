@@ -17,6 +17,8 @@
     "pageSubtitle": "{offers} élő ajánlat között {products} egyedi termék nyomon követése.",
     "comparePrices": "Árak összehasonlítása",
     "trendingNow": "Jelenleg népszerű",
+    "trendingSubtitle": "AI piaci kereslet szerint rangsorolva — új kiadások, hype és gyűjtői érdeklődés Magyarországon és Európában.",
+    "trendingBadge": "Felkapott",
     "bestVsMedian": "Legjobb ajánlat vs Medián",
     "back": "Vissza a főoldalra",
     "comparing": "Összehasonlítás",
@@ -114,5 +116,21 @@
   },
   "footer": {
     "disclaimer": "Az árak és elérhetőség a kereskedőktől származnak — mindig ellenőrizd vásárlás előtt."
+  },
+  "seo": {
+    "metaTitle": "PokéDeals — Pokémon TCG árak Magyarországon",
+    "metaDescription": "Hasonlítsd össze a készleten lévő Pokémon TCG booster boxok, ETB-k, tinék és booster csomagok árait magyar webshopokban. Óránként frissített árak forintban.",
+    "keywords": "pokemon kártya árak,pokémon tcg árak,pokemon booster box ár,pokemon etb ár,elite trainer box magyarország,pokemon webshop,pokemon árak összehasonlítás,pokémon kártya bolt,pokemon kártyák magyarország",
+    "introP1": "A PokéDeals élő, készleten lévő Pokémon TCG árakat hasonlít össze magyar online boltokból, hogy egy helyen lásd a legalacsonyabb árat, a medián piaci árat és az árkülönbséget.",
+    "introP2": "Kövesd a booster boxokat, Elite Trainer Boxokat, tinéket, blister csomagokat, bundle-öket és booster pack-eket több kereskedőnél — árak forintban, nagyjából óránként frissítve.",
+    "faqTitle": "Gyakori kérdések",
+    "faqQ1": "Hol hasonlíthatom össze a Pokémon kártya árakat Magyarországon?",
+    "faqA1": "A PokéDeals a magyar Pokémon TCG webshopok aktuális, készleten lévő ajánlatait gyűjti össze, és termékenként mutatja a legalacsonyabb árat, a medián árat és az ajánlatok számát.",
+    "faqQ2": "Milyen gyakran frissülnek az árak?",
+    "faqA2": "A rendszer nagyjából óránként ellenőrzi a részt vevő boltokat. Vásárlás előtt mindig erősítsd meg a végső árat és a készletet a bolt weboldalán.",
+    "faqQ3": "Milyen termékek szerepelnek?",
+    "faqA3": "Elsősorban készleten lévő, zárt Pokémon TCG termékek: booster boxok, ETB-k, tinék, blister csomagok, bundle-ök és booster pack-ek.",
+    "termsDescription": "A PokéDeals felhasználási feltételei és jogi nyilatkozata — Pokémon TCG árösszehasonlító Magyarországon.",
+    "privacyDescription": "A PokéDeals adatvédelmi tájékoztatója, beleértve a listázási adatok tárolását és megjelenítését."
   }
 }

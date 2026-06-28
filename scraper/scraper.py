@@ -1369,6 +1369,20 @@ async def run_scraper(
     final_items = list(deduped_by_shop_title.values())
     logger.info("Post-processing: %d -> %d records after dedupe.", len(staged_items), len(final_items))
 
+    if not dry_run and use_ai_matching and ai_client and final_items:
+        try:
+            from market_trends import refresh_market_trends, trend_score_map
+
+            catalog_titles = [str(item.get("raw_title", "")).strip() for item in final_items]
+            trends = refresh_market_trends(supabase_client, ai_client, catalog_titles)
+            scores = trend_score_map(trends)
+            for item in final_items:
+                key = canonical_key_for_grouping(str(item.get("raw_title", "")))
+                if key in scores:
+                    item["demand_score"] = scores[key]
+        except Exception as exc:
+            logger.warning("Market trends refresh failed: %s", exc)
+
     if dry_run:
         logger.info("Finished dry-run with %d processed records.", len(final_items))
         return

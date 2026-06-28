@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { buildTrendScoreMap, loadMarketTrends } from "@/lib/market-trends";
 
 /** One shop offer attached to a canonical product (comparison row). */
 export type ShopOffer = {
@@ -26,6 +27,7 @@ export type ComparisonProduct = {
   spread: number;
   bestVsMedian: number;
   score: number;
+  trendingScore: number;
   offers: ShopOffer[];
 };
 
@@ -70,7 +72,7 @@ function median(values: number[]): number {
     : sorted[mid];
 }
 
-function canonicalKey(name: string): string {
+export function canonicalKey(name: string): string {
   return name
     .toLowerCase()
     .normalize("NFD")
@@ -96,6 +98,7 @@ function buildComparisonProduct(
   setName: string | null,
   imageUrl: string,
   offers: ShopOffer[],
+  trendingScore = 50,
 ): ComparisonProduct {
   const validPrices = offers.map((o) => o.priceHuf).filter((p) => p > 0);
   const lowestPrice = validPrices.length ? Math.min(...validPrices) : 0;
@@ -106,7 +109,7 @@ function buildComparisonProduct(
     medianPrice > 0 && lowestPrice > 0
       ? Math.round(((lowestPrice - medianPrice) / medianPrice) * 100)
       : 0;
-  const score = offers.length * 100 + Math.max(0, -bestVsMedian);
+  const score = trendingScore * 1000 + offers.length * 100 + Math.max(0, -bestVsMedian);
 
   return {
     productId,
@@ -120,6 +123,7 @@ function buildComparisonProduct(
     spread,
     bestVsMedian,
     score,
+    trendingScore,
     offers: [...offers].sort((a, b) => a.priceHuf - b.priceHuf),
   };
 }
@@ -178,13 +182,17 @@ export function groupNormalizedListings(rows: ListingRow[]): ComparisonProduct[]
 }
 
 /** Legacy flat shop_listings table (current app behavior). */
-export function groupLegacyListings(rows: LegacyListingRow[]): ComparisonProduct[] {
+export function groupLegacyListings(
+  rows: LegacyListingRow[],
+  trendScores: Map<string, number> = new Map(),
+): ComparisonProduct[] {
   const grouped = new Map<string, ComparisonProduct>();
 
   for (const row of rows) {
     if (!String(row.stock_status || "").toUpperCase().includes("IN_STOCK")) continue;
 
     const key = canonicalKey(row.raw_title);
+    const trendingScore = trendScores.get(key) ?? 50;
     const offer: ShopOffer = {
       listingId: row.id || `${row.shop_name}-${row.product_url}`,
       shopSlug: row.shop_name.toLowerCase().replace(/\s+/g, "-"),
@@ -201,7 +209,7 @@ export function groupLegacyListings(rows: LegacyListingRow[]): ComparisonProduct
     if (!existing) {
       grouped.set(
         key,
-        buildComparisonProduct(key, row.raw_title, null, null, row.image_url || "", [offer]),
+        buildComparisonProduct(key, row.raw_title, null, null, row.image_url || "", [offer], trendingScore),
       );
       continue;
     }
@@ -217,6 +225,7 @@ export function groupLegacyListings(rows: LegacyListingRow[]): ComparisonProduct
         existing.setName,
         existing.imageUrl,
         existing.offers,
+        Math.max(existing.trendingScore, trendingScore),
       ),
     );
   }
@@ -240,9 +249,12 @@ function isInStockStatus(status: string | null | undefined): boolean {
   return String(status || "").toUpperCase().includes("IN_STOCK");
 }
 
-export function computeLegacyStats(rows: LegacyListingRow[]) {
+export function computeLegacyStats(
+  rows: LegacyListingRow[],
+  trendScores: Map<string, number> = new Map(),
+) {
   const inStockRows = rows.filter((row) => isInStockStatus(row.stock_status));
-  const products = groupLegacyListings(rows);
+  const products = groupLegacyListings(rows, trendScores);
   const shops = new Set(inStockRows.map((row) => row.shop_name).filter(Boolean));
 
   return {
@@ -285,6 +297,8 @@ export type ListingsFetchResult = {
   lastUpdated: string | null;
   schema: "normalized" | "legacy";
   deltas: StatsDelta;
+  marketNote: string | null;
+  trendsUpdatedAt: string | null;
 };
 
 /**
@@ -329,6 +343,8 @@ export async function fetchComparisonProducts(): Promise<ListingsFetchResult> {
       inStockProducts: currentStats.inStockProducts,
       lastUpdated,
       schema: "normalized",
+      marketNote: null,
+      trendsUpdatedAt: null,
       deltas: {
         inStockProducts: deltaFromPrevious(
           currentStats.inStockProducts,
@@ -352,11 +368,15 @@ export async function fetchComparisonProducts(): Promise<ListingsFetchResult> {
   if (error) throw new Error(error.message);
 
   const rows = (data ?? []) as LegacyListingRow[];
-  const products = groupLegacyListings(rows);
-  const stats = computeLegacyStats(rows);
+  const [marketTrends, previousSnapshot] = await Promise.all([
+    loadMarketTrends(supabase),
+    fetchPreviousStatsSnapshot(supabase),
+  ]);
+  const trendScores = buildTrendScoreMap(marketTrends);
+  const products = groupLegacyListings(rows, trendScores);
+  const stats = computeLegacyStats(rows, trendScores);
   const lastUpdated =
     rows.map((r) => r.updated_at || r.created_at).filter(Boolean).sort().slice(-1)[0] ?? null;
-  const previousSnapshot = await fetchPreviousStatsSnapshot(supabase);
 
   return {
     products,
@@ -365,6 +385,8 @@ export async function fetchComparisonProducts(): Promise<ListingsFetchResult> {
     inStockProducts: stats.inStockProducts,
     lastUpdated,
     schema: "legacy",
+    marketNote: marketTrends?.market_note ?? null,
+    trendsUpdatedAt: marketTrends?.updated_at ?? null,
     deltas: {
       inStockProducts: deltaFromPrevious(
         stats.inStockProducts,

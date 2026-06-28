@@ -17,6 +17,8 @@
     "pageSubtitle": "Tracking {products} unique products across {offers} live offers.",
     "comparePrices": "Compare Prices",
     "trendingNow": "Trending Now",
+    "trendingSubtitle": "Ranked by AI market demand — new releases, hype, and collector interest in Hungary and Europe.",
+    "trendingBadge": "Hot",
     "bestVsMedian": "Best Deal vs Median",
     "back": "Back to Dashboard",
     "comparing": "Comparing",
@@ -114,5 +116,21 @@
   },
   "footer": {
     "disclaimer": "Prices & availability are set by merchants — always verify before buying."
+  },
+  "seo": {
+    "metaTitle": "PokéDeals — Pokémon TCG prices in Hungary",
+    "metaDescription": "Compare in-stock Pokémon TCG booster boxes, ETBs, tins and booster packs across Hungarian webshops. Live prices in Ft, updated hourly.",
+    "keywords": "pokemon cards hungary,pokemon tcg hungary,pokemon card prices hungary,pokemon booster box price,pokemon etb price,elite trainer box hungary,pokemon árak,pokémon kártya árak,pokemon webshop összehasonlítás",
+    "introP1": "PokéDeals compares live in-stock Pokémon TCG prices from Hungarian online shops so you can see the lowest price, median market price, and spread for sealed products in one place.",
+    "introP2": "Track booster boxes, Elite Trainer Boxes, tins, blisters, bundles and booster packs across multiple retailers — prices in forint (Ft), refreshed about every hour.",
+    "faqTitle": "Frequently asked questions",
+    "faqQ1": "Where can I compare Pokémon card prices in Hungary?",
+    "faqA1": "PokéDeals aggregates current in-stock offers from Hungarian Pokémon TCG webshops and shows the lowest price, median price and number of offers for each product.",
+    "faqQ2": "How often are prices updated?",
+    "faqA2": "The scraper checks participating shops about every hour. Always confirm the final price and stock on the shop's website before you buy.",
+    "faqQ3": "Which products are included?",
+    "faqA3": "We focus on sealed Pokémon TCG products that are in stock: booster boxes, ETBs, tins, blisters, bundles and booster packs.",
+    "termsDescription": "Terms of use and disclaimer for PokéDeals, a Pokémon TCG price comparison site for Hungary.",
+    "privacyDescription": "Privacy information for PokéDeals, including how listing data is stored and displayed."
   }
 }

@@ -1,5 +1,6 @@
 import { Link } from "@/i18n/navigation";
 import { getTranslations } from "next-intl/server";
+import { buildLegalMetadata } from "@/lib/seo";
 
 export async function generateMetadata({
   params,
@@ -7,11 +8,7 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  const t = await getTranslations({ locale, namespace: "nav" });
-  return {
-    title: `${t("privacy")} — PokéDeals`,
-    description: "Privacy information for PokéDeals.",
-  };
+  return buildLegalMetadata(locale, "privacy");
 }
 
 export default async function PrivacyPage({

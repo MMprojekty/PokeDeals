@@ -8,7 +8,8 @@ on:
 
 concurrency:
   group: shop-scraper
-  cancel-in-progress: true
+  # Never cancel a running scrape — a long run + cancel caused missed hourly updates.
+  cancel-in-progress: false
 
 jobs:
   scrape:
