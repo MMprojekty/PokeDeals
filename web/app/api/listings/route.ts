@@ -2,9 +2,9 @@ import { NextResponse } from "next/server";
 import { fetchComparisonProducts } from "@/lib/listings";
 import { toClientProduct } from "@/lib/listings-client";
 
-const CACHE_CONTROL = "public, s-maxage=120, stale-while-revalidate=300";
+const CACHE_CONTROL = "no-store";
 
-export const revalidate = 120;
+export const revalidate = 0;
 
 export async function GET() {
   try {

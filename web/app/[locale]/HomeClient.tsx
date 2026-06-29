@@ -123,7 +123,7 @@ export function HomeClient({ initialData }: { initialData?: InitialListingsPaylo
 
   async function fetchHealthSnapshot() {
     try {
-      const response = await fetch("/api/health", { cache: "no-store" });
+      const response = await fetch(`/api/health?t=${Date.now()}`, { cache: "no-store" });
       if (response.ok) {
         const payload = await response.json().catch(() => ({}));
         setHealthFetchFailed(false);
@@ -204,6 +204,10 @@ export function HomeClient({ initialData }: { initialData?: InitialListingsPaylo
   useEffect(() => {
     void fetchHealthSnapshot();
     void fetchAndGroupData();
+    const interval = window.setInterval(() => {
+      void fetchHealthSnapshot();
+    }, 60_000);
+    return () => window.clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
