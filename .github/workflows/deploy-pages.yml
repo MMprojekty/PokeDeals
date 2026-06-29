@@ -1,24 +1,13 @@
+# Disabled — static export build was failing. Re-enable manually when ready.
 name: Deploy web (GitHub Pages)
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - "web/**"
-      - ".github/workflows/deploy-pages.yml"
-  workflow_run:
-    workflows: ["Scrape shop prices"]
-    types: [completed]
   workflow_dispatch:
 
 permissions:
   contents: read
   pages: write
   id-token: write
-
-concurrency:
-  group: pages
-  cancel-in-progress: true
 
 jobs:
   build:
@@ -43,11 +32,6 @@ jobs:
         working-directory: web
         run: npm install --no-audit --no-fund
 
-      - name: Prepare static export
-        run: |
-          rm -rf web/app/api web/app/llms.txt
-          rm -f web/middleware.ts
-
       - name: Build static site
         working-directory: web
         env:
@@ -57,15 +41,7 @@ jobs:
           SUPABASE_LISTINGS_TABLE: shop_listings
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           NEXT_PUBLIC_SITE_URL: https://mmprojekty.github.io/PokeDeals
-        run: npm run build 2>&1 | tee build.log; test ${PIPESTATUS[0]} -eq 0
-
-      - name: Upload build log on failure
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: pages-build-log
-          path: web/build.log
-          retention-days: 3
+        run: npm run build
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

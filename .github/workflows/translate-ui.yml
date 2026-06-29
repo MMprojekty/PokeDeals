@@ -1,11 +1,6 @@
 name: Translate UI to Hungarian
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - "web/messages/en.json"
-      - "scripts/translate_web_messages.py"
   workflow_dispatch:
 
 permissions:
