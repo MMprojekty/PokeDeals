@@ -2,10 +2,8 @@ name: Scrape shop prices
 
 on:
   schedule:
-    # Three chances per hour — GitHub cron often misses single schedules.
-    - cron: "5 * * * *"
-    - cron: "25 * * * *"
-    - cron: "45 * * * *"
+    # Every 20 minutes — GitHub cron is often late, so use multiple slots.
+    - cron: "5,25,45 * * * *"
   workflow_dispatch:
     inputs:
       force:
@@ -33,7 +31,7 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           SUPABASE_LISTINGS_TABLE: shop_listings
-          SCRAPE_STALE_MINUTES: "50"
+          SCRAPE_STALE_MINUTES: "25"
         run: python3 scripts/check_scrape_stale.py
 
       - name: Skip — data is still fresh

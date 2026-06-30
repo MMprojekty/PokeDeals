@@ -1,4 +1,4 @@
-const STALE_AFTER_MINUTES = 90;
+const STALE_AFTER_MINUTES = 45;
 
 export type PublicHealthSnapshot = {
   badgeLevel: "green" | "amber" | "red";

@@ -1,0 +1,31 @@
+name: Scraper watchdog
+
+on:
+  schedule:
+    # Backup if the main scraper schedule misses or skips.
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+
+concurrency:
+  group: scraper-watchdog
+  cancel-in-progress: false
+
+jobs:
+  watchdog:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Trigger scrape when data is stale
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_LISTINGS_TABLE: shop_listings
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REPO: MMprojekty/PokeDeals
+          SCRAPE_STALE_MINUTES: "35"
+        run: python3 scripts/trigger_scrape_if_stale.py

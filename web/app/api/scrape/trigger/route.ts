@@ -7,8 +7,8 @@ const listingsTable = process.env.SUPABASE_LISTINGS_TABLE || "shop_listings";
 const githubToken = process.env.GITHUB_TOKEN;
 const githubRepo = process.env.GITHUB_REPO || "MMprojekty/PokeDeals";
 
-const TRIGGER_AFTER_MINUTES = Number(process.env.SCRAPE_TRIGGER_AFTER_MINUTES || 65);
-const COOLDOWN_MINUTES = Number(process.env.SCRAPE_TRIGGER_COOLDOWN_MINUTES || 40);
+const TRIGGER_AFTER_MINUTES = Number(process.env.SCRAPE_TRIGGER_AFTER_MINUTES || 38);
+const COOLDOWN_MINUTES = Number(process.env.SCRAPE_TRIGGER_COOLDOWN_MINUTES || 20);
 
 export const revalidate = 0;
 
@@ -113,7 +113,7 @@ export async function POST() {
         "X-GitHub-Api-Version": "2022-11-28",
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ ref: "main" }),
+      body: JSON.stringify({ ref: "main", inputs: { force: "true" } }),
       cache: "no-store",
     },
   );

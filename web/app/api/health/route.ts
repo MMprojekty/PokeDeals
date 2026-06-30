@@ -5,8 +5,8 @@ const supabaseUrl = process.env.SUPABASE_URL;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const listingsTable = process.env.SUPABASE_LISTINGS_TABLE || "shop_listings";
 const CACHE_CONTROL = "no-store";
-// Hourly scraper — amber badge once data is ~70 min old.
-const STALE_AFTER_MINUTES = Number(process.env.SCRAPE_STALE_MINUTES || 70);
+// Target: fresh data about every 30 minutes.
+const STALE_AFTER_MINUTES = Number(process.env.SCRAPE_STALE_MINUTES || 45);
 
 export const revalidate = 0;
 

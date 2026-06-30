@@ -8,6 +8,7 @@ import base64
 import json
 import os
 import re
+import secrets
 import subprocess
 import sys
 import urllib.error
@@ -188,26 +189,27 @@ def find_project(vercel_token: str, team_id: str | None) -> dict | None:
 
 def create_or_update_project(vercel_token: str, team_id: str | None) -> dict:
     existing = find_project(vercel_token, team_id)
-    body = {
+    update_body = {
         "name": PROJECT_NAME,
         "framework": "nextjs",
         "rootDirectory": "web",
-        "gitRepository": {
-            "type": "github",
-            "repo": REPO,
-        },
         "buildCommand": "npm run build",
         "installCommand": "npm install",
     }
     if existing:
-        project_id = existing["id"]
-        query = f"teamId={team_id}" if team_id else ""
-        print(f"  updating Vercel project: {PROJECT_NAME}")
-        return vercel_request(vercel_token, "PATCH", f"/v9/projects/{project_id}", body, params=query)
+        print(f"  using existing Vercel project: {PROJECT_NAME}")
+        return existing
 
+    create_body = {
+        **update_body,
+        "gitRepository": {
+            "type": "github",
+            "repo": REPO,
+        },
+    }
     query = f"teamId={team_id}" if team_id else ""
     print(f"  creating Vercel project: {PROJECT_NAME}")
-    return vercel_request(vercel_token, "POST", "/v11/projects", body, params=query)
+    return vercel_request(vercel_token, "POST", "/v11/projects", create_body, params=query)
 
 
 def set_project_env(
@@ -310,6 +312,7 @@ def main() -> int:
     org_id = project.get("accountId") or user.get("user", {}).get("id") or user.get("id")
 
     site_url = f"https://{PROJECT_NAME}.vercel.app"
+    cron_secret = env.get("CRON_SECRET", "").strip() or secrets.token_urlsafe(24)
     env_values = {
         "SUPABASE_URL": env.get("SUPABASE_URL", ""),
         "SUPABASE_SERVICE_ROLE_KEY": env.get("SUPABASE_SERVICE_ROLE_KEY", ""),
@@ -317,6 +320,9 @@ def main() -> int:
         "NEXT_PUBLIC_SITE_URL": site_url,
         "GITHUB_TOKEN": github_token,
         "GITHUB_REPO": REPO,
+        "CRON_SECRET": cron_secret,
+        "SCRAPE_STALE_MINUTES": "45",
+        "SCRAPE_TRIGGER_AFTER_MINUTES": "38",
     }
     print("Setting Vercel environment variables...")
     upsert_env_vars(vercel_token, project_id, team_id, env_values)
