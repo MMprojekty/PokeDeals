@@ -315,6 +315,8 @@ def main() -> int:
         "SUPABASE_SERVICE_ROLE_KEY": env.get("SUPABASE_SERVICE_ROLE_KEY", ""),
         "SUPABASE_LISTINGS_TABLE": env.get("SUPABASE_LISTINGS_TABLE", "shop_listings"),
         "NEXT_PUBLIC_SITE_URL": site_url,
+        "GITHUB_TOKEN": github_token,
+        "GITHUB_REPO": REPO,
     }
     print("Setting Vercel environment variables...")
     upsert_env_vars(vercel_token, project_id, team_id, env_values)

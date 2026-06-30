@@ -121,6 +121,26 @@ export function HomeClient({ initialData }: { initialData?: InitialListingsPaylo
     setSortDirection(column === "product" ? "asc" : "desc");
   }
 
+  async function maybeTriggerScrape(ageMinutes: number | null, stale: boolean) {
+    if (!stale || ageMinutes === null || ageMinutes < 65) {
+      return;
+    }
+    const storageKey = "pokedeals-scrape-trigger";
+    const lastTrigger = Number(sessionStorage.getItem(storageKey) || "0");
+    if (Date.now() - lastTrigger < 30 * 60_000) {
+      return;
+    }
+    try {
+      const response = await fetch("/api/scrape/trigger", { method: "POST", cache: "no-store" });
+      const payload = await response.json().catch(() => ({}));
+      if (response.ok && payload?.triggered) {
+        sessionStorage.setItem(storageKey, String(Date.now()));
+      }
+    } catch {
+      // Best-effort fallback when GitHub cron misses a run.
+    }
+  }
+
   async function fetchHealthSnapshot() {
     try {
       const response = await fetch(`/api/health?t=${Date.now()}`, { cache: "no-store" });
@@ -128,14 +148,17 @@ export function HomeClient({ initialData }: { initialData?: InitialListingsPaylo
         const payload = await response.json().catch(() => ({}));
         setHealthFetchFailed(false);
         const badgeLevel = (payload?.badgeLevel as "green" | "amber" | "red") || "amber";
+        const ageMinutes = typeof payload.ageMinutes === "number" ? payload.ageMinutes : null;
+        const stale = Boolean(payload.stale);
         setHealthInfo({
           badgeLevel,
-          ageMinutes: typeof payload.ageMinutes === "number" ? payload.ageMinutes : null,
+          ageMinutes,
           latestScrapeAt: typeof payload.latestScrapeAt === "string" ? payload.latestScrapeAt : null,
           totalInStockRows: Number(payload.totalInStockRows) || 0,
           totalRows: Number(payload.totalRows) || 0,
-          stale: Boolean(payload.stale),
+          stale,
         });
+        void maybeTriggerScrape(ageMinutes, stale);
         return;
       }
     } catch {
