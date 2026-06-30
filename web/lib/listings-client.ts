@@ -18,7 +18,6 @@ export type ClientComparisonRow = {
   spread: number;
   bestVsMedian: number;
   score: number;
-  trendingScore: number;
   imageUrl: string;
   isNewSinceLastUpdate: boolean;
   hasNewOffersSinceLastUpdate: boolean;
@@ -46,7 +45,6 @@ export function toClientProduct(product: ComparisonProduct): ClientComparisonRow
     spread: product.spread,
     bestVsMedian: product.bestVsMedian,
     score: product.score,
-    trendingScore: product.trendingScore,
     imageUrl: product.imageUrl,
     isNewSinceLastUpdate: product.isNewSinceLastUpdate,
     hasNewOffersSinceLastUpdate: product.hasNewOffersSinceLastUpdate,

@@ -19,8 +19,6 @@ export async function GET() {
           lastUpdated: result.lastUpdated,
           schema: result.schema,
           deltas: result.deltas,
-          marketNote: result.marketNote,
-          trendsUpdatedAt: result.trendsUpdatedAt,
         },
       },
       { status: 200, headers: { "Cache-Control": CACHE_CONTROL } },

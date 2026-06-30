@@ -25,7 +25,7 @@ export function ProductDetail({
         highestPrice: product.highestPrice,
         spread: product.spread,
         bestVsMedian: product.bestVsMedian,
-        trendingScore: product.trendingScore,
+        isNewSinceLastUpdate: product.isNewSinceLastUpdate,
         imageUrl: product.imageUrl,
         offers: product.offers.map((offer) => ({
           shop_name: offer.shopName,

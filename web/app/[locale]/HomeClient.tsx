@@ -154,7 +154,6 @@ export function HomeClient({ initialData }: { initialData?: InitialListingsPaylo
   }>(initialData?.statsDeltas ?? { inStockProducts: null, shops: null, inStockOffers: null });
   const [listingsLoading, setListingsLoading] = useState(!initialData);
   const [listingsError, setListingsError] = useState<string | null>(null);
-  const [marketNote, setMarketNote] = useState<string | null>(null);
   const [healthInfo, setHealthInfo] = useState<{
     badgeLevel: "green" | "amber" | "red";
     ageMinutes: number | null;
@@ -271,7 +270,6 @@ export function HomeClient({ initialData }: { initialData?: InitialListingsPaylo
         shops: typeof deltas?.shops === "number" ? deltas.shops : null,
         inStockOffers: typeof deltas?.inStockOffers === "number" ? deltas.inStockOffers : null,
       });
-      setMarketNote(typeof payload?.meta?.marketNote === "string" ? payload.meta.marketNote : null);
     } catch (e) {
       console.error(e);
       setListingsError(t("home.listingsLoadError"));
@@ -687,10 +685,8 @@ export function HomeClient({ initialData }: { initialData?: InitialListingsPaylo
               </button>
             </div>
 
-          <h3 className="font-bold text-lg mb-1 flex items-center gap-2">🔥 {t("home.trendingNow")}</h3>
-          <p className="text-sm text-gray-500 mb-4">
-            {marketNote || t("home.trendingSubtitle")}
-          </p>
+          <h3 className="font-bold text-lg mb-1">{t("home.productsHeading")}</h3>
+          <p className="text-sm text-gray-500 mb-4">{t("home.productsSubtitle")}</p>
 
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
               <div className="overflow-x-auto">
@@ -798,14 +794,9 @@ export function HomeClient({ initialData }: { initialData?: InitialListingsPaylo
                             <span className="font-bold text-base leading-snug text-[#4b3585] group-hover:text-[#a63c5e] transition-colors">
                               {prod.displayTitle}
                             </span>
-                            {prod.trendingScore >= 75 ? (
-                              <span className="shrink-0 rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-orange-700">
-                                🔥 {t("home.trendingBadge")}
-                              </span>
-                            ) : null}
                             {prod.isNewSinceLastUpdate ? (
                               <span className="shrink-0 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-700">
-                                {t("home.newBadge")}
+                                ✨ {t("home.newBadge")}
                               </span>
                             ) : null}
                           </div>

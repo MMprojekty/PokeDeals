@@ -22,7 +22,7 @@ type ProductDetailClientProps = {
     highestPrice: number;
     spread: number;
     bestVsMedian: number;
-    trendingScore: number;
+    isNewSinceLastUpdate: boolean;
     imageUrl: string;
     offers: ProductOffer[];
   };
@@ -165,9 +165,9 @@ export function ProductDetailClient({
               <span className="text-xs font-bold text-[#4b3585] uppercase tracking-wider">
                 {t("home.comparing")} {product.offers.length} {t("home.storeOffers")}
               </span>
-              {product.trendingScore >= 75 ? (
-                <span className="rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-orange-700">
-                  🔥 {t("home.trendingBadge")}
+              {product.isNewSinceLastUpdate ? (
+                <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-700">
+                  ✨ {t("home.newBadge")}
                 </span>
               ) : null}
               {product.bestVsMedian < 0 ? (
