@@ -30,6 +30,8 @@ export type ComparisonProduct = {
   bestVsMedian: number;
   score: number;
   trendingScore: number;
+  isNewSinceLastUpdate: boolean;
+  hasNewOffersSinceLastUpdate: boolean;
   offers: ShopOffer[];
 };
 
@@ -127,6 +129,8 @@ function buildComparisonProduct(
     bestVsMedian,
     score,
     trendingScore,
+    isNewSinceLastUpdate: false,
+    hasNewOffersSinceLastUpdate: false,
     offers: [...offers].sort((a, b) => a.priceHuf - b.priceHuf),
   };
 }
@@ -246,7 +250,39 @@ type StatsSnapshot = {
   in_stock_products: number;
   shops_count: number;
   in_stock_offers: number;
+  product_keys?: string[];
+  offer_keys?: string[];
 };
+
+function enrichWithNewFlags(
+  products: ComparisonProduct[],
+  previousSnapshot: StatsSnapshot | null,
+): ComparisonProduct[] {
+  const prevProductKeys = new Set(previousSnapshot?.product_keys ?? []);
+  const prevOfferKeys = new Set(previousSnapshot?.offer_keys ?? []);
+  if (prevProductKeys.size === 0 && prevOfferKeys.size === 0) {
+    return products;
+  }
+
+  return products.map((product) => {
+    const productKey = canonicalKey(product.displayTitle);
+    const isNewSinceLastUpdate =
+      prevProductKeys.size > 0 &&
+      !prevProductKeys.has(productKey) &&
+      !prevProductKeys.has(product.productId);
+    const hasNewOffersSinceLastUpdate =
+      prevOfferKeys.size > 0 &&
+      product.offers.some(
+        (offer) => !prevOfferKeys.has(`${offer.shopName}|${productKey}`),
+      );
+
+    return {
+      ...product,
+      isNewSinceLastUpdate,
+      hasNewOffersSinceLastUpdate,
+    };
+  });
+}
 
 function isInStockStatus(status: string | null | undefined): boolean {
   return String(status || "").toUpperCase().includes("IN_STOCK");
@@ -327,12 +363,12 @@ export async function fetchComparisonProducts(): Promise<ListingsFetchResult> {
     if (error) throw new Error(error.message);
 
     const rows = (data ?? []) as ListingRow[];
-    const products = groupNormalizedListings(rows);
+    const previousSnapshot = await fetchPreviousStatsSnapshot(supabase);
+    const products = enrichWithNewFlags(groupNormalizedListings(rows), previousSnapshot);
     const inStockRows = rows.filter((row) => row.stock_status === "in_stock");
     const shops = new Set(inStockRows.map((row) => row.shop_name));
     const lastUpdated =
       rows.map((r) => r.updated_at).filter(Boolean).sort().slice(-1)[0] ?? null;
-    const previousSnapshot = await fetchPreviousStatsSnapshot(supabase);
     const currentStats = {
       inStockProducts: products.length,
       shopCount: shops.size,
@@ -376,7 +412,7 @@ export async function fetchComparisonProducts(): Promise<ListingsFetchResult> {
     fetchPreviousStatsSnapshot(supabase),
   ]);
   const trendScores = buildTrendScoreMap(marketTrends);
-  const products = groupLegacyListings(rows, trendScores);
+  const products = enrichWithNewFlags(groupLegacyListings(rows, trendScores), previousSnapshot);
   const stats = computeLegacyStats(rows, trendScores);
   const lastUpdated =
     rows.map((r) => r.updated_at || r.created_at).filter(Boolean).sort().slice(-1)[0] ?? null;

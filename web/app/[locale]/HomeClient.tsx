@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { usePathname, useRouter, Link } from "@/i18n/navigation";
@@ -51,6 +51,59 @@ function StatDelta({ delta, label }: { delta: number | null; label: string }) {
     <div className={`text-xs font-semibold mt-1 ${colorClass}`}>
       {unchanged ? "±0" : `${sign}${delta}`} {label}
     </div>
+  );
+}
+
+type NewFilterMode = "none" | "newProducts" | "newOffers";
+
+function BentoStatCard({
+  label,
+  value,
+  delta,
+  deltaLabel,
+  clickable,
+  active,
+  onClick,
+  hint,
+}: {
+  label: string;
+  value: number;
+  delta: number | null;
+  deltaLabel: string;
+  clickable: boolean;
+  active: boolean;
+  onClick?: () => void;
+  hint?: string;
+}) {
+  const baseClass =
+    "bg-white rounded-xl border p-4 shadow-sm text-left w-full transition-colors";
+  const stateClass = active
+    ? "border-emerald-400 ring-2 ring-emerald-100"
+    : clickable
+      ? "border-gray-100 hover:border-emerald-300 hover:bg-emerald-50/40 cursor-pointer"
+      : "border-gray-100";
+
+  const content = (
+    <>
+      <div className="text-xs font-bold text-gray-500 uppercase tracking-wider">{label}</div>
+      <div className="text-2xl font-extrabold text-gray-900 mt-2">{value}</div>
+      <StatDelta delta={delta} label={deltaLabel} />
+      {clickable && hint ? (
+        <div className="text-[10px] font-bold uppercase tracking-wide text-emerald-700 mt-2">
+          {hint}
+        </div>
+      ) : null}
+    </>
+  );
+
+  if (!clickable) {
+    return <div className={`${baseClass} ${stateClass}`}>{content}</div>;
+  }
+
+  return (
+    <button type="button" onClick={onClick} className={`${baseClass} ${stateClass}`}>
+      {content}
+    </button>
   );
 }
 
@@ -113,6 +166,8 @@ export function HomeClient({ initialData }: { initialData?: InitialListingsPaylo
   const [healthFetchFailed, setHealthFetchFailed] = useState(false);
   const [sortColumn, setSortColumn] = useState<SortColumn>("score");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+  const [newFilter, setNewFilter] = useState<NewFilterMode>("none");
+  const tableSectionRef = useRef<HTMLDivElement>(null);
 
   function toggleSort(column: SortColumn) {
     if (sortColumn === column) {
@@ -236,6 +291,43 @@ export function HomeClient({ initialData }: { initialData?: InitialListingsPaylo
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    const mode = searchParams.get("new");
+    if (mode === "products" || mode === "offers") {
+      setNewFilter(mode === "products" ? "newProducts" : "newOffers");
+    }
+  }, [searchParams]);
+
+  const newProductCount = useMemo(
+    () => products.filter((product) => product.isNewSinceLastUpdate ?? false).length,
+    [products],
+  );
+  const newOffersProductCount = useMemo(
+    () => products.filter((product) => product.hasNewOffersSinceLastUpdate ?? false).length,
+    [products],
+  );
+
+  function applyNewFilter(mode: NewFilterMode) {
+    const next = newFilter === mode ? "none" : mode;
+    setNewFilter(next);
+    setActiveFilter("all");
+
+    const params = new URLSearchParams(searchParams.toString());
+    if (next === "newProducts") {
+      params.set("new", "products");
+    } else if (next === "newOffers") {
+      params.set("new", "offers");
+    } else {
+      params.delete("new");
+    }
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname);
+
+    window.setTimeout(() => {
+      tableSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 50);
+  }
+
   const formatPrice = (price: number) => {
     if (!price || price === Infinity) return t("common.notAvailable");
     return new Intl.NumberFormat("hu-HU").format(price) + " Ft";
@@ -335,6 +427,13 @@ export function HomeClient({ initialData }: { initialData?: InitialListingsPaylo
     };
 
     if (languageFilter === "english" && !isEnglishProduct(p.displayTitle)) {
+      return false;
+    }
+
+    if (newFilter === "newProducts" && !(p.isNewSinceLastUpdate ?? false)) {
+      return false;
+    }
+    if (newFilter === "newOffers" && !(p.hasNewOffersSinceLastUpdate ?? false)) {
       return false;
     }
 
@@ -468,21 +567,34 @@ export function HomeClient({ initialData }: { initialData?: InitialListingsPaylo
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
-            <div className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t("bento.inStockProducts")}</div>
-            <div className="text-2xl font-extrabold text-gray-900 mt-2">{products.length}</div>
-            <StatDelta delta={statsDeltas.inStockProducts} label={t("bento.vsLastUpdate")} />
-          </div>
-          <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
-            <div className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t("bento.shops")}</div>
-            <div className="text-2xl font-extrabold text-gray-900 mt-2">{shopsCount}</div>
-            <StatDelta delta={statsDeltas.shops} label={t("bento.vsLastUpdate")} />
-          </div>
-          <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
-            <div className="text-xs font-bold text-gray-500 uppercase tracking-wider">{t("bento.inStockOffers")}</div>
-            <div className="text-2xl font-extrabold text-gray-900 mt-2">{totalOffers}</div>
-            <StatDelta delta={statsDeltas.inStockOffers} label={t("bento.vsLastUpdate")} />
-          </div>
+          <BentoStatCard
+            label={t("bento.inStockProducts")}
+            value={products.length}
+            delta={statsDeltas.inStockProducts}
+            deltaLabel={t("bento.vsLastUpdate")}
+            clickable={(statsDeltas.inStockProducts ?? 0) > 0 && newProductCount > 0}
+            active={newFilter === "newProducts"}
+            onClick={() => applyNewFilter("newProducts")}
+            hint={t("bento.showNewProducts")}
+          />
+          <BentoStatCard
+            label={t("bento.shops")}
+            value={shopsCount}
+            delta={statsDeltas.shops}
+            deltaLabel={t("bento.vsLastUpdate")}
+            clickable={false}
+            active={false}
+          />
+          <BentoStatCard
+            label={t("bento.inStockOffers")}
+            value={totalOffers}
+            delta={statsDeltas.inStockOffers}
+            deltaLabel={t("bento.vsLastUpdate")}
+            clickable={(statsDeltas.inStockOffers ?? 0) > 0 && newOffersProductCount > 0}
+            active={newFilter === "newOffers"}
+            onClick={() => applyNewFilter("newOffers")}
+            hint={t("bento.showNewOffers")}
+          />
           <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm sm:col-span-2 lg:col-span-1">
             <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{t("bento.metricsTitle")}</div>
             <div className="text-xs text-gray-600 space-y-1">
@@ -507,10 +619,25 @@ export function HomeClient({ initialData }: { initialData?: InitialListingsPaylo
       {listingsLoading && products.length === 0 ? (
         <div className="max-w-7xl mx-auto py-24 text-center text-gray-600 font-semibold">{t("common.loading")}</div>
       ) : (
-        <div className="max-w-7xl mx-auto">
+        <div className="max-w-7xl mx-auto" ref={tableSectionRef}>
           <div className="flex flex-wrap gap-2 overflow-x-auto pb-4 mb-4 scrollbar-hide">
+              {newFilter !== "none" ? (
+                <button
+                  type="button"
+                  onClick={() => applyNewFilter("none")}
+                  className={`whitespace-nowrap px-4 py-1.5 rounded-lg text-sm font-bold transition-colors border ${btnAct}`}
+                >
+                  {newFilter === "newProducts"
+                    ? t("filters.newProducts", { count: newProductCount })
+                    : t("filters.newOffers", { count: newOffersProductCount })}{" "}
+                  ×
+                </button>
+              ) : null}
               <button
-                onClick={() => setActiveFilter("all")}
+                onClick={() => {
+                  setActiveFilter("all");
+                  setNewFilter("none");
+                }}
                 className={`whitespace-nowrap px-4 py-1.5 rounded-lg text-sm font-bold transition-colors border ${activeFilter === "all" ? btnAct : btnIna}`}
               >
                 {t("categories.all")}
@@ -674,6 +801,11 @@ export function HomeClient({ initialData }: { initialData?: InitialListingsPaylo
                             {prod.trendingScore >= 75 ? (
                               <span className="shrink-0 rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-orange-700">
                                 🔥 {t("home.trendingBadge")}
+                              </span>
+                            ) : null}
+                            {prod.isNewSinceLastUpdate ? (
+                              <span className="shrink-0 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-700">
+                                {t("home.newBadge")}
                               </span>
                             ) : null}
                           </div>

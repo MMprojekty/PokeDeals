@@ -19,6 +19,7 @@
     "trendingNow": "Trending Now",
     "trendingSubtitle": "Ranked by AI market demand — new releases, hype, and collector interest in Hungary and Europe.",
     "trendingBadge": "Hot",
+    "newBadge": "New",
     "bestVsMedian": "Best Deal vs Median",
     "back": "Back to Dashboard",
     "comparing": "Comparing",
@@ -91,11 +92,15 @@
     "metricMedian": "Median = middle price among offers",
     "metricGap": "Price Gap = highest - lowest price",
     "metricDelta": "Delta = best vs median (%)",
-    "vsLastUpdate": "vs last update"
+    "vsLastUpdate": "vs last update",
+    "showNewProducts": "Tap to see new products",
+    "showNewOffers": "Tap to see new listings"
   },
   "filters": {
     "allLanguages": "All languages",
-    "englishOnly": "English only"
+    "englishOnly": "English only",
+    "newProducts": "New products ({count})",
+    "newOffers": "New shop listings ({count})"
   },
   "search": {
     "label": "Search products",

@@ -19,6 +19,7 @@
     "trendingNow": "Jelenleg népszerű",
     "trendingSubtitle": "AI piaci kereslet alapján rangsorolva — új megjelenések, hype és gyűjtői érdeklődés Magyarországon és Európában.",
     "trendingBadge": "Forró",
+    "newBadge": "Új",
     "bestVsMedian": "Legjobb ajánlat vs Medián",
     "back": "Vissza a főoldalra",
     "comparing": "Összehasonlítás",
@@ -91,11 +92,15 @@
     "metricMedian": "Medián = középső ár az ajánlatok között",
     "metricGap": "Árkülönbség = legmagasabb - legalacsonyabb ár",
     "metricDelta": "Delta = legjobb vs medián (%)",
-    "vsLastUpdate": "vs utolsó frissítés"
+    "vsLastUpdate": "vs utolsó frissítés",
+    "showNewProducts": "Koppints az új termékekhez",
+    "showNewOffers": "Koppints az új boltajánlatokhoz"
   },
   "filters": {
     "allLanguages": "Összes nyelv",
-    "englishOnly": "Csak angol"
+    "englishOnly": "Csak angol",
+    "newProducts": "Új termékek ({count})",
+    "newOffers": "Új boltajánlatok ({count})"
   },
   "search": {
     "label": "Termékek keresése",

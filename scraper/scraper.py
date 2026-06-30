@@ -1185,24 +1185,30 @@ def canonical_key_for_grouping(name: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
-def compute_run_stats(items: List[Dict[str, object]]) -> Dict[str, int]:
+def compute_run_stats(items: List[Dict[str, object]]) -> Dict[str, object]:
     product_keys = set()
+    offer_keys = set()
     shops = set()
     for item in items:
         title = str(item.get("raw_title", "")).strip()
         shop = str(item.get("shop_name", "")).strip()
         if title:
-            product_keys.add(canonical_key_for_grouping(title))
+            key = canonical_key_for_grouping(title)
+            product_keys.add(key)
+            if shop:
+                offer_keys.add(f"{shop}|{key}")
         if shop:
             shops.add(shop)
     return {
         "in_stock_products": len(product_keys),
         "shops_count": len(shops),
         "in_stock_offers": len(items),
+        "product_keys": sorted(product_keys),
+        "offer_keys": sorted(offer_keys),
     }
 
 
-def store_stats_snapshot(supabase_client: Client, stats: Dict[str, int]) -> None:
+def store_stats_snapshot(supabase_client: Client, stats: Dict[str, object]) -> None:
     def _do() -> None:
         try:
             supabase_client.storage.get_bucket(STATS_BUCKET)
@@ -1322,7 +1328,7 @@ def store_product_price_history(
 
 def store_public_scrape_status(
     supabase_client: Client,
-    stats: Dict[str, int],
+    stats: Dict[str, object],
     total_rows: int,
 ) -> None:
     def _do() -> None:

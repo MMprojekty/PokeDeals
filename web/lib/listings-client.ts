@@ -20,6 +20,8 @@ export type ClientComparisonRow = {
   score: number;
   trendingScore: number;
   imageUrl: string;
+  isNewSinceLastUpdate: boolean;
+  hasNewOffersSinceLastUpdate: boolean;
   offers: ClientShopOffer[];
 };
 
@@ -46,6 +48,8 @@ export function toClientProduct(product: ComparisonProduct): ClientComparisonRow
     score: product.score,
     trendingScore: product.trendingScore,
     imageUrl: product.imageUrl,
+    isNewSinceLastUpdate: product.isNewSinceLastUpdate,
+    hasNewOffersSinceLastUpdate: product.hasNewOffersSinceLastUpdate,
     offers: product.offers.map((offer) => ({
       shop_name: offer.shopName,
       shop_slug: offer.shopSlug,
