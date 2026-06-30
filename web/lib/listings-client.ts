@@ -2,6 +2,7 @@ import type { ComparisonProduct, ListingsFetchResult } from "@/lib/listings";
 
 export type ClientShopOffer = {
   shop_name: string;
+  shop_slug: string;
   price_huf: number;
   product_url: string;
   raw_title?: string;
@@ -9,6 +10,7 @@ export type ClientShopOffer = {
 };
 
 export type ClientComparisonRow = {
+  slug: string;
   displayTitle: string;
   lowestPrice: number;
   highestPrice: number;
@@ -34,6 +36,7 @@ export type InitialListingsPayload = {
 
 export function toClientProduct(product: ComparisonProduct): ClientComparisonRow {
   return {
+    slug: product.slug,
     displayTitle: product.displayTitle,
     lowestPrice: product.lowestPrice,
     highestPrice: product.highestPrice,
@@ -45,6 +48,7 @@ export function toClientProduct(product: ComparisonProduct): ClientComparisonRow
     imageUrl: product.imageUrl,
     offers: product.offers.map((offer) => ({
       shop_name: offer.shopName,
+      shop_slug: offer.shopSlug,
       price_huf: offer.priceHuf,
       product_url: offer.productUrl,
       raw_title: offer.rawTitle,

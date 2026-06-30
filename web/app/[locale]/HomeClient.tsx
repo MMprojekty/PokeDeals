@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { usePathname, useRouter, Link } from "@/i18n/navigation";
 import type { ClientComparisonRow, InitialListingsPayload } from "@/lib/listings-client";
@@ -85,6 +86,8 @@ export function HomeClient({ initialData }: { initialData?: InitialListingsPaylo
   const locale = useLocale();
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const searchQuery = (searchParams.get("q") || "").trim().toLowerCase();
 
   const [products, setProducts] = useState<ComparisonRow[]>(initialData?.products ?? []);
   const [activeFilter, setActiveFilter] = useState("all");
@@ -108,7 +111,6 @@ export function HomeClient({ initialData }: { initialData?: InitialListingsPaylo
     stale: boolean;
   } | null>(null);
   const [healthFetchFailed, setHealthFetchFailed] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<ComparisonRow | null>(null);
   const [sortColumn, setSortColumn] = useState<SortColumn>("score");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
 
@@ -306,6 +308,10 @@ export function HomeClient({ initialData }: { initialData?: InitialListingsPaylo
   const filteredProducts = products.filter((p) => {
     const title = p.displayTitle.toLowerCase();
 
+    if (searchQuery && !title.includes(searchQuery)) {
+      return false;
+    }
+
     const isEnglishProduct = (value: string) => {
       const text = value
         .toLowerCase()
@@ -381,84 +387,16 @@ export function HomeClient({ initialData }: { initialData?: InitialListingsPaylo
   const btnAct = "bg-[#a63c5e] text-white border-[#a63c5e]";
   const btnIna = "bg-white text-gray-700 border-gray-200 hover:bg-gray-50";
 
-  if (selectedProduct) {
-    return (
-      <main className="min-h-screen bg-[#f1f0ec] text-gray-900 font-sans p-6 md:p-10">
-        <div className="max-w-6xl mx-auto">
-          <div className="mb-10">
-            <AppBrand onNavigateHome={() => setSelectedProduct(null)} />
-          </div>
-          <button
-            onClick={() => setSelectedProduct(null)}
-            className="text-[#4b3585] font-bold text-sm flex items-center gap-2 mb-6 hover:opacity-80 transition-opacity uppercase tracking-wider"
-          >
-            ← {t("home.back")}
-          </button>
-
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col md:flex-row">
-            <div className="bg-gray-50 p-10 md:w-1/2 flex items-center justify-center border-r border-gray-100">
-              {selectedProduct.imageUrl ? (
-                <img
-                  src={selectedProduct.imageUrl}
-                  alt={selectedProduct.displayTitle}
-                  className="max-h-[400px] object-contain drop-shadow-xl hover:scale-105 transition-transform duration-300"
-                />
-              ) : (
-                <div className="w-full h-64 bg-gray-200 rounded flex items-center justify-center text-gray-400 font-bold">
-                  NO IMAGE
-                </div>
-              )}
-            </div>
-
-            <div className="p-8 md:p-12 md:w-1/2 flex flex-col">
-              <h1 className="text-3xl font-extrabold text-gray-900 mb-4">{selectedProduct.displayTitle}</h1>
-
-              <div className="flex items-center gap-4 mb-8">
-                <span className="text-xs font-bold text-[#4b3585] uppercase tracking-wider">
-                  {t("home.comparing")} {selectedProduct.offers.length} {t("home.storeOffers")}
-                </span>
-                {selectedProduct.medianPrice > 0 && (
-                  <span className="bg-gray-100 text-gray-600 text-xs font-bold px-3 py-1 rounded-full">
-                    {t("pricing.marketMedian")}: {formatPrice(selectedProduct.medianPrice)}
-                  </span>
-                )}
-              </div>
-
-              <div className="w-full h-px bg-gray-100 mb-6" />
-
-              <div className="flex-1 overflow-y-auto space-y-6 pr-4">
-                {selectedProduct.offers.map((offer, idx) => (
-                  <div
-                    key={idx}
-                    className="flex justify-between items-center group bg-gray-50/80 border border-gray-100 rounded-xl px-4 py-3"
-                  >
-                    <div>
-                      <h3 className="font-bold text-lg text-gray-900 group-hover:text-[#a63c5e] transition-colors">
-                        {offer.shop_name}
-                      </h3>
-                      <p className="text-[10px] font-bold text-green-500 uppercase tracking-wider mt-1 flex items-center gap-1">
-                        <span className="w-2 h-2 rounded-full bg-green-500 block"></span> {t("stock.inStock")}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-extrabold text-xl text-gray-900">{formatPrice(offer.price_huf)}</div>
-                      <a
-                        href={offer.product_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-[11px] font-bold text-[#a63c5e] uppercase tracking-wider mt-1 block hover:underline"
-                      >
-                        {t("home.viewDeal")} →
-                      </a>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </main>
-    );
+  function updateSearchQuery(value: string) {
+    const params = new URLSearchParams(searchParams.toString());
+    const trimmed = value.trim();
+    if (trimmed) {
+      params.set("q", trimmed);
+    } else {
+      params.delete("q");
+    }
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname);
   }
 
   return (
@@ -514,6 +452,20 @@ export function HomeClient({ initialData }: { initialData?: InitialListingsPaylo
           <p>{t("seo.introP1")}</p>
           <p>{t("seo.introP2")}</p>
         </section>
+
+        <div className="mb-8 max-w-xl">
+          <label htmlFor="product-search" className="sr-only">
+            {t("search.label")}
+          </label>
+          <input
+            id="product-search"
+            type="search"
+            value={searchParams.get("q") || ""}
+            onChange={(event) => updateSearchQuery(event.target.value)}
+            placeholder={t("search.placeholder")}
+            className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm shadow-sm outline-none focus:border-[#a63c5e] focus:ring-2 focus:ring-[#a63c5e]/20"
+          />
+        </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
@@ -698,8 +650,8 @@ export function HomeClient({ initialData }: { initialData?: InitialListingsPaylo
                   <tbody className="divide-y divide-gray-50">
                     {sortedFilteredProducts.map((prod, idx) => (
                       <tr
-                        key={idx}
-                        onClick={() => setSelectedProduct(prod)}
+                        key={prod.slug || idx}
+                        onClick={() => router.push(`/product/${prod.slug}`)}
                         className="hover:bg-gray-50 transition-colors cursor-pointer group"
                       >
                         <td className="p-4 text-center text-sm text-gray-400">{idx + 1}</td>

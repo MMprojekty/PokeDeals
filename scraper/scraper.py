@@ -42,6 +42,8 @@ EUR_TO_HUF_RATE = 395.0
 LISTINGS_TABLE = os.getenv("SUPABASE_LISTINGS_TABLE", "shop_listings")
 STATS_BUCKET = "pokedeals-meta"
 STATS_OBJECT = "stats_snapshots.json"
+PRODUCT_HISTORY_OBJECT = "product_price_history.json"
+MAX_POINTS_PER_PRODUCT = 72
 PUBLIC_STATUS_BUCKET = "pokedeals-public"
 PUBLIC_STATUS_OBJECT = "status.json"
 MAX_STATS_SNAPSHOTS = 30
@@ -1236,6 +1238,88 @@ def store_stats_snapshot(supabase_client: Client, stats: Dict[str, int]) -> None
     supabase_execute_with_retry(_do, "store_stats_snapshot")
 
 
+def _median_int(values: List[int]) -> int:
+    if not values:
+        return 0
+    sorted_values = sorted(values)
+    mid = len(sorted_values) // 2
+    if len(sorted_values) % 2 == 0:
+        return int(round((sorted_values[mid - 1] + sorted_values[mid]) / 2))
+    return sorted_values[mid]
+
+
+def compute_product_price_snapshots(items: List[Dict[str, object]]) -> Dict[str, Dict[str, int]]:
+    grouped: Dict[str, List[int]] = {}
+    for item in items:
+        title = str(item.get("raw_title", "")).strip()
+        price = int(item.get("price_huf", 0) or 0)
+        if not title or price <= 0:
+            continue
+        key = canonical_key_for_grouping(title)
+        grouped.setdefault(key, []).append(price)
+
+    snapshots: Dict[str, Dict[str, int]] = {}
+    for key, prices in grouped.items():
+        snapshots[key] = {
+            "lowest_huf": min(prices),
+            "median_huf": _median_int(prices),
+            "offer_count": len(prices),
+        }
+    return snapshots
+
+
+def store_product_price_history(
+    supabase_client: Client,
+    product_snapshots: Dict[str, Dict[str, int]],
+) -> None:
+    if not product_snapshots:
+        return
+
+    def _do() -> None:
+        try:
+            supabase_client.storage.get_bucket(STATS_BUCKET)
+        except Exception:
+            try:
+                supabase_client.storage.create_bucket(STATS_BUCKET, options={"public": False})
+            except Exception:
+                pass
+
+        products: Dict[str, Dict[str, object]] = {}
+        try:
+            raw = supabase_client.storage.from_(STATS_BUCKET).download(PRODUCT_HISTORY_OBJECT)
+            payload = json.loads(raw.decode("utf-8"))
+            if isinstance(payload, dict) and isinstance(payload.get("products"), dict):
+                products = payload["products"]
+        except Exception:
+            products = {}
+
+        recorded_at = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+        for key, stats in product_snapshots.items():
+            slug = key.replace(" ", "-")
+            entry = products.get(slug) or products.get(key) or {"points": []}
+            points = entry.get("points")
+            if not isinstance(points, list):
+                points = []
+            points.append(
+                {
+                    "recorded_at": recorded_at,
+                    "lowest_huf": int(stats.get("lowest_huf", 0) or 0),
+                    "median_huf": int(stats.get("median_huf", 0) or 0),
+                    "offer_count": int(stats.get("offer_count", 0) or 0),
+                }
+            )
+            products[slug] = {"points": points[-MAX_POINTS_PER_PRODUCT:]}
+
+        body = json.dumps({"products": products}).encode("utf-8")
+        supabase_client.storage.from_(STATS_BUCKET).upload(
+            PRODUCT_HISTORY_OBJECT,
+            body,
+            file_options={"content-type": "application/json", "upsert": "true"},
+        )
+
+    supabase_execute_with_retry(_do, "store_product_price_history")
+
+
 def store_public_scrape_status(
     supabase_client: Client,
     stats: Dict[str, int],
@@ -1436,6 +1520,10 @@ async def run_scraper(
         try:
             stats = compute_run_stats(final_items)
             store_stats_snapshot(supabase_client, stats)
+            store_product_price_history(
+                supabase_client,
+                compute_product_price_snapshots(final_items),
+            )
             store_public_scrape_status(supabase_client, stats, inserted)
             logger.info(
                 "Saved stats snapshot: %d products, %d shops, %d offers.",

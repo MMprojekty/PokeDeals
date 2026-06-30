@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { HomeClient } from "./HomeClient";
 import { SeoJsonLd } from "@/components/SeoJsonLd";
 import { fetchComparisonProducts } from "@/lib/listings";
@@ -35,7 +36,15 @@ export default async function HomePage({
   return (
     <>
       <SeoJsonLd locale={locale} products={initialData?.products ?? []} />
-      <HomeClient initialData={initialData} />
+      <Suspense
+        fallback={
+          <main className="min-h-screen bg-[#f1f0ec] p-10 text-center text-gray-600 font-semibold">
+            Loading…
+          </main>
+        }
+      >
+        <HomeClient initialData={initialData} />
+      </Suspense>
     </>
   );
 }

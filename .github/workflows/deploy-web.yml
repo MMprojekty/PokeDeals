@@ -1,8 +1,17 @@
-# Disabled — was failing on every push (no VERCEL_TOKEN). Re-enable manually when ready.
 name: Deploy web to Vercel
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - "web/**"
+      - ".github/workflows/deploy-web.yml"
   workflow_dispatch:
+
+concurrency:
+  group: deploy-web-production
+  cancel-in-progress: true
 
 jobs:
   deploy:

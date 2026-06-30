@@ -23,8 +23,9 @@ Nothing else. No old backup env files. No marketplace. No git history.
 3. Open `supabase/migrations/000000_shop_listings_legacy.sql` in Cursor
 4. Copy all → paste in Supabase → **Run**
 5. If scraper or website shows **permission denied for table shop_listings**, also run `supabase/migrations/000001_service_role_grants.sql`
-6. **Settings → General** → copy **Project URL**
-7. **Settings → API Keys → Legacy tab** → copy **service_role** key
+6. For shop click tracking, run `supabase/migrations/000002_outbound_clicks.sql`
+7. **Settings → General** → copy **Project URL**
+8. **Settings → API Keys → Legacy tab** → copy **service_role** key
 
 ---
 
@@ -120,7 +121,32 @@ python3 scripts/setup_cloud.py
 
 3. Watch progress: **https://github.com/MMprojekty/PokeDeals/actions**
 
-After the first run, the scraper repeats **automatically every day**. No more copy-paste.
+After the first run, the scraper repeats **automatically every hour**. No more copy-paste.
+
+---
+
+## Step 6 — Auto-deploy website (Vercel)
+
+Every **push to `main`** that changes `web/` deploys **pokedeals.hu** automatically via GitHub Actions.
+
+### One-time setup
+
+```bash
+cd ~/Downloads/PokeDeals
+python3 scripts/setup_vercel.py
+```
+
+This links the repo to Vercel, sets env vars (Supabase, etc.), and stores `VERCEL_TOKEN` / `VERCEL_ORG_ID` / `VERCEL_PROJECT_ID` in GitHub secrets.
+
+### After that
+
+```bash
+git add .
+git commit -m "your message"
+git push origin main
+```
+
+Watch deploy: **https://github.com/MMprojekty/PokeDeals/actions** (workflow: *Deploy web to Vercel*). Live site updates in ~2 minutes.
 
 ---
 

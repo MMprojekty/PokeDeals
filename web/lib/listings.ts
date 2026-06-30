@@ -1,5 +1,6 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { buildTrendScoreMap, loadMarketTrends } from "@/lib/market-trends";
+import { findProductSlug, slugMatchesProduct } from "@/lib/product-slug";
 
 /** One shop offer attached to a canonical product (comparison row). */
 export type ShopOffer = {
@@ -17,6 +18,7 @@ export type ShopOffer = {
 /** Canonical product with grouped in-stock offers, ready for the UI. */
 export type ComparisonProduct = {
   productId: string;
+  slug: string;
   displayTitle: string;
   category: string | null;
   setName: string | null;
@@ -113,6 +115,7 @@ function buildComparisonProduct(
 
   return {
     productId,
+    slug: findProductSlug(formatDisplayTitle(displayTitle), productId),
     displayTitle: formatDisplayTitle(displayTitle),
     category,
     setName,
@@ -396,4 +399,16 @@ export async function fetchComparisonProducts(): Promise<ListingsFetchResult> {
       inStockOffers: deltaFromPrevious(stats.inStockOffers, previousSnapshot?.in_stock_offers),
     },
   };
+}
+
+export async function fetchProductBySlug(slug: string): Promise<{
+  product: ComparisonProduct;
+  lastUpdated: string | null;
+} | null> {
+  const result = await fetchComparisonProducts();
+  const product = result.products.find((entry) =>
+    slugMatchesProduct(entry.displayTitle, slug, entry.productId),
+  );
+  if (!product) return null;
+  return { product, lastUpdated: result.lastUpdated };
 }

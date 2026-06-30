@@ -31,6 +31,12 @@ export default async function PrivacyPage({
           marketing trackers or advertising cookies on this minimalist deployment by default — check your
           hosting provider&apos;s dashboard (for example Vercel analytics) if you enable analytics later.
         </p>
+        <h2 className="text-lg font-bold pt-2">Outbound clicks</h2>
+        <p className="text-gray-600">
+          When you click a shop deal link, we may log an anonymous event (product, shop, price, destination
+          URL, and basic request metadata) in your Supabase project to measure which offers are useful. No
+          account is required and we do not sell this data.
+        </p>
         <h2 className="text-lg font-bold pt-2">Data stored by you</h2>
         <p className="text-gray-600">
           Product records are stored in your Supabase project under your control. Review Supabase privacy and

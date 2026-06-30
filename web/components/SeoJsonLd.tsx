@@ -48,9 +48,11 @@ export function SeoJsonLd({ locale, products }: SeoJsonLdProps) {
     itemListElement: products.slice(0, 20).map((product, index) => ({
       "@type": "ListItem",
       position: index + 1,
+      url: absoluteUrl(locale, `/product/${product.slug}`),
       item: {
         "@type": "Product",
         name: product.displayTitle,
+        url: absoluteUrl(locale, `/product/${product.slug}`),
         image: product.imageUrl || undefined,
         offers: {
           "@type": "AggregateOffer",

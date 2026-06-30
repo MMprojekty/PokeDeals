@@ -97,6 +97,20 @@
     "allLanguages": "Összes nyelv",
     "englishOnly": "Csak angol"
   },
+  "search": {
+    "label": "Termékek keresése",
+    "placeholder": "Keresés: booster doboz, ETB, fém doboz…"
+  },
+  "product": {
+    "metaTitle": "{product} — Pokémon TCG ár Magyarországon",
+    "metaDescription": "Hasonlítsd össze a(z) {product} árait magyar boltokban. Legalacsonyabb ár: {lowest} Ft, {offers} készleten lévő ajánlatból.",
+    "priceHistory": "Legalacsonyabb ár előzmények",
+    "priceHistoryHint": "Minden lekérés után automatikusan rögzítve. Az idő múlásával egyre több adat jelenik meg.",
+    "historyPending": "Az előzmények néhány lekérés után jelennek meg.",
+    "historyLow": "Legalacsonyabb",
+    "historyHigh": "Legmagasabb",
+    "sinceLastScrape": "az utolsó lekérés óta"
+  },
   "health": {
     "fresh": "Friss adatok",
     "stale": "Elavult / ellenőrizd a folyamatot",

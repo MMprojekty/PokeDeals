@@ -97,6 +97,20 @@
     "allLanguages": "All languages",
     "englishOnly": "English only"
   },
+  "search": {
+    "label": "Search products",
+    "placeholder": "Search booster boxes, ETBs, tins…"
+  },
+  "product": {
+    "metaTitle": "{product} — Pokémon TCG price in Hungary",
+    "metaDescription": "Compare {product} prices across Hungarian shops. Lowest price {lowest} Ft from {offers} in-stock offers.",
+    "priceHistory": "Lowest price history",
+    "priceHistoryHint": "Tracked automatically after each scrape run. More data appears over time.",
+    "historyPending": "History will appear after a few scraper runs.",
+    "historyLow": "Lowest seen",
+    "historyHigh": "Highest seen",
+    "sinceLastScrape": "since last scrape"
+  },
   "health": {
     "fresh": "Fresh data",
     "stale": "Stale / check pipeline",
