@@ -151,7 +151,8 @@ export function HomeClient({ initialData }: { initialData?: InitialListingsPaylo
     inStockProducts: number | null;
     shops: number | null;
     inStockOffers: number | null;
-  }>(initialData?.statsDeltas ?? { inStockProducts: null, shops: null, inStockOffers: null });
+    newProducts: number | null;
+  }>(initialData?.statsDeltas ?? { inStockProducts: null, shops: null, inStockOffers: null, newProducts: null });
   const [listingsLoading, setListingsLoading] = useState(!initialData);
   const [listingsError, setListingsError] = useState<string | null>(null);
   const [healthInfo, setHealthInfo] = useState<{
@@ -248,7 +249,7 @@ export function HomeClient({ initialData }: { initialData?: InitialListingsPaylo
         setProducts([]);
         setTotalOffers(0);
         setShopsCount(0);
-        setStatsDeltas({ inStockProducts: null, shops: null, inStockOffers: null });
+        setStatsDeltas({ inStockProducts: null, shops: null, inStockOffers: null, newProducts: null });
         return;
       }
 
@@ -269,6 +270,7 @@ export function HomeClient({ initialData }: { initialData?: InitialListingsPaylo
           typeof deltas?.inStockProducts === "number" ? deltas.inStockProducts : null,
         shops: typeof deltas?.shops === "number" ? deltas.shops : null,
         inStockOffers: typeof deltas?.inStockOffers === "number" ? deltas.inStockOffers : null,
+        newProducts: typeof deltas?.newProducts === "number" ? deltas.newProducts : null,
       });
     } catch (e) {
       console.error(e);
@@ -561,9 +563,9 @@ export function HomeClient({ initialData }: { initialData?: InitialListingsPaylo
           <BentoStatCard
             label={t("bento.inStockProducts")}
             value={products.length}
-            delta={statsDeltas.inStockProducts}
+            delta={statsDeltas.newProducts}
             deltaLabel={t("bento.vsLastUpdate")}
-            clickable={(statsDeltas.inStockProducts ?? 0) > 0 && newProductCount > 0}
+            clickable={(statsDeltas.newProducts ?? 0) > 0 && newProductCount > 0}
             active={newFilter === "newProducts"}
             onClick={() => applyNewFilter("newProducts")}
             hint={t("bento.showNewProducts")}

@@ -32,6 +32,7 @@ export type InitialListingsPayload = {
     inStockProducts: number | null;
     shops: number | null;
     inStockOffers: number | null;
+    newProducts: number | null;
   };
 };
 

@@ -256,6 +256,7 @@ export type StatsDelta = {
   inStockProducts: number | null;
   shops: number | null;
   inStockOffers: number | null;
+  newProducts: number | null;
 };
 
 type StatsSnapshot = {
@@ -266,53 +267,119 @@ type StatsSnapshot = {
   offer_keys?: string[];
 };
 
+async function fetchStatsSnapshotPair(
+  supabase: SupabaseClient,
+): Promise<{ latest: StatsSnapshot | null; previous: StatsSnapshot | null }> {
+  const bucket = "pokedeals-meta";
+  const objectPath = "stats_snapshots.json";
+
+  const { data, error } = await supabase.storage.from(bucket).download(objectPath);
+  if (error || !data) return { latest: null, previous: null };
+
+  try {
+    const payload = JSON.parse(await data.text()) as {
+      snapshots?: StatsSnapshot[];
+    };
+    const snapshots = payload.snapshots ?? [];
+    if (snapshots.length === 0) return { latest: null, previous: null };
+    if (snapshots.length === 1) return { latest: snapshots[0], previous: null };
+    return {
+      latest: snapshots[snapshots.length - 1],
+      previous: snapshots[snapshots.length - 2],
+    };
+  } catch {
+    return { latest: null, previous: null };
+  }
+}
+
+function resolveNewProductKeys(
+  newSinceUpdate: { product_keys?: string[] } | null,
+  latestSnapshot: StatsSnapshot | null,
+  previousSnapshot: StatsSnapshot | null,
+): Set<string> {
+  if (newSinceUpdate !== null) {
+    return new Set(newSinceUpdate.product_keys ?? []);
+  }
+
+  const latestKeys = latestSnapshot?.product_keys ?? [];
+  const previousKeys = new Set(previousSnapshot?.product_keys ?? []);
+  if (latestKeys.length === 0 || previousKeys.size === 0) {
+    return new Set();
+  }
+
+  const newKeys = new Set<string>();
+  for (const key of latestKeys) {
+    if (!previousKeys.has(key)) {
+      newKeys.add(key);
+    }
+  }
+  return newKeys;
+}
+
+function deltaFromPrevious(current: number, previous: number | undefined): number | null {
+  if (previous === undefined) return null;
+  return current - previous;
+}
+
+async function loadNewProductContext(supabase: SupabaseClient) {
+  const [{ latest, previous }, newSinceUpdate] = await Promise.all([
+    fetchStatsSnapshotPair(supabase),
+    loadNewSinceUpdate(supabase),
+  ]);
+  return {
+    previousSnapshot: previous,
+    newProductKeys: resolveNewProductKeys(newSinceUpdate, latest, previous),
+    newOfferProductKeys: resolveNewOfferProductKeys(newSinceUpdate, latest, previous),
+  };
+}
+
+function resolveNewOfferProductKeys(
+  newSinceUpdate: { offer_product_keys?: string[] } | null,
+  latestSnapshot: StatsSnapshot | null,
+  previousSnapshot: StatsSnapshot | null,
+): Set<string> {
+  if (newSinceUpdate !== null) {
+    return new Set(newSinceUpdate.offer_product_keys ?? []);
+  }
+
+  const latestKeys = latestSnapshot?.offer_keys ?? [];
+  const previousKeys = new Set(previousSnapshot?.offer_keys ?? []);
+  if (latestKeys.length === 0 || previousKeys.size === 0) {
+    return new Set();
+  }
+
+  const newKeys = new Set<string>();
+  for (const offerKey of latestKeys) {
+    if (previousKeys.has(offerKey)) continue;
+    const productKey = offerKey.split("|", 2)[1];
+    if (productKey) newKeys.add(productKey);
+  }
+  return newKeys;
+}
+
+function productMatchesKeySet(product: ComparisonProduct, keys: Set<string>): boolean {
+  if (keys.size === 0) return false;
+  const productKey = canonicalKey(product.displayTitle);
+  return keys.has(productKey) || keys.has(product.productId);
+}
+
 function enrichWithNewFlags(
   products: ComparisonProduct[],
-  previousSnapshot: StatsSnapshot | null,
-  newSinceUpdate: { product_keys?: string[]; offer_product_keys?: string[] } | null,
+  newProductKeys: Set<string>,
+  newOfferProductKeys: Set<string>,
 ): ComparisonProduct[] {
-  const explicitNewProducts = new Set(newSinceUpdate?.product_keys ?? []);
-  const explicitNewOffers = new Set(newSinceUpdate?.offer_product_keys ?? []);
-
-  if (explicitNewProducts.size > 0 || explicitNewOffers.size > 0) {
-    return products.map((product) => {
-      const productKey = canonicalKey(product.displayTitle);
-      const enriched = {
-        ...product,
-        isNewSinceLastUpdate:
-          explicitNewProducts.has(productKey) || explicitNewProducts.has(product.productId),
-        hasNewOffersSinceLastUpdate:
-          explicitNewOffers.has(productKey) || explicitNewOffers.has(product.productId),
-      };
-      return { ...enriched, score: rankingScore(enriched) };
-    });
-  }
-
-  const prevProductKeys = new Set(previousSnapshot?.product_keys ?? []);
-  const prevOfferKeys = new Set(previousSnapshot?.offer_keys ?? []);
-  if (prevProductKeys.size === 0 && prevOfferKeys.size === 0) {
-    return products;
-  }
-
   return products.map((product) => {
-    const productKey = canonicalKey(product.displayTitle);
-    const isNewSinceLastUpdate =
-      prevProductKeys.size > 0 &&
-      !prevProductKeys.has(productKey) &&
-      !prevProductKeys.has(product.productId);
-    const hasNewOffersSinceLastUpdate =
-      prevOfferKeys.size > 0 &&
-      product.offers.some(
-        (offer) => !prevOfferKeys.has(`${offer.shopName}|${productKey}`),
-      );
-
     const enriched = {
       ...product,
-      isNewSinceLastUpdate,
-      hasNewOffersSinceLastUpdate,
+      isNewSinceLastUpdate: productMatchesKeySet(product, newProductKeys),
+      hasNewOffersSinceLastUpdate: productMatchesKeySet(product, newOfferProductKeys),
     };
     return { ...enriched, score: rankingScore(enriched) };
   });
+}
+
+function countNewProducts(products: ComparisonProduct[]): number {
+  return products.filter((product) => product.isNewSinceLastUpdate).length;
 }
 
 function sortByRankingScore(products: ComparisonProduct[]): ComparisonProduct[] {
@@ -335,29 +402,25 @@ export function computeLegacyStats(rows: LegacyListingRow[]) {
   };
 }
 
-function deltaFromPrevious(current: number, previous: number | undefined): number | null {
-  if (previous === undefined) return null;
-  return current - previous;
+async function fetchPreviousStatsSnapshot(supabase: SupabaseClient): Promise<StatsSnapshot | null> {
+  const { previous } = await fetchStatsSnapshotPair(supabase);
+  return previous;
 }
 
-async function fetchPreviousStatsSnapshot(supabase: SupabaseClient): Promise<StatsSnapshot | null> {
-  const bucket = "pokedeals-meta";
-  const objectPath = "stats_snapshots.json";
-
-  const { data, error } = await supabase.storage.from(bucket).download(objectPath);
-  if (error || !data) return null;
-
-  try {
-    const payload = JSON.parse(await data.text()) as {
-      snapshots?: StatsSnapshot[];
-    };
-    const snapshots = payload.snapshots ?? [];
-    if (snapshots.length === 0) return null;
-    if (snapshots.length === 1) return snapshots[0];
-    return snapshots[snapshots.length - 2];
-  } catch {
-    return null;
-  }
+function buildDeltas(
+  current: { inStockProducts: number; shopCount: number; inStockOffers: number },
+  previousSnapshot: StatsSnapshot | null,
+  newProducts: number,
+): StatsDelta {
+  return {
+    inStockProducts: deltaFromPrevious(
+      current.inStockProducts,
+      previousSnapshot?.in_stock_products,
+    ),
+    shops: deltaFromPrevious(current.shopCount, previousSnapshot?.shops_count),
+    inStockOffers: deltaFromPrevious(current.inStockOffers, previousSnapshot?.in_stock_offers),
+    newProducts: newProducts > 0 ? newProducts : null,
+  };
 }
 
 export type ListingsFetchResult = {
@@ -393,10 +456,14 @@ export async function fetchComparisonProducts(): Promise<ListingsFetchResult> {
     if (error) throw new Error(error.message);
 
     const rows = (data ?? []) as ListingRow[];
-    const previousSnapshot = await fetchPreviousStatsSnapshot(supabase);
-    const newSinceUpdate = await loadNewSinceUpdate(supabase);
+    const { previousSnapshot, newProductKeys, newOfferProductKeys } =
+      await loadNewProductContext(supabase);
     const products = sortByRankingScore(
-      enrichWithNewFlags(groupNormalizedListings(rows), previousSnapshot, newSinceUpdate),
+      enrichWithNewFlags(
+        groupNormalizedListings(rows),
+        newProductKeys,
+        newOfferProductKeys,
+      ),
     );
     const inStockRows = rows.filter((row) => row.stock_status === "in_stock");
     const shops = new Set(inStockRows.map((row) => row.shop_name));
@@ -415,17 +482,7 @@ export async function fetchComparisonProducts(): Promise<ListingsFetchResult> {
       inStockProducts: currentStats.inStockProducts,
       lastUpdated,
       schema: "normalized",
-      deltas: {
-        inStockProducts: deltaFromPrevious(
-          currentStats.inStockProducts,
-          previousSnapshot?.in_stock_products,
-        ),
-        shops: deltaFromPrevious(currentStats.shopCount, previousSnapshot?.shops_count),
-        inStockOffers: deltaFromPrevious(
-          currentStats.inStockOffers,
-          previousSnapshot?.in_stock_offers,
-        ),
-      },
+      deltas: buildDeltas(currentStats, previousSnapshot, countNewProducts(products)),
     };
   }
 
@@ -438,12 +495,10 @@ export async function fetchComparisonProducts(): Promise<ListingsFetchResult> {
   if (error) throw new Error(error.message);
 
   const rows = (data ?? []) as LegacyListingRow[];
-  const [previousSnapshot, newSinceUpdate] = await Promise.all([
-    fetchPreviousStatsSnapshot(supabase),
-    loadNewSinceUpdate(supabase),
-  ]);
+  const { previousSnapshot, newProductKeys, newOfferProductKeys } =
+    await loadNewProductContext(supabase);
   const products = sortByRankingScore(
-    enrichWithNewFlags(groupLegacyListings(rows), previousSnapshot, newSinceUpdate),
+    enrichWithNewFlags(groupLegacyListings(rows), newProductKeys, newOfferProductKeys),
   );
   const stats = computeLegacyStats(rows);
   const lastUpdated =
@@ -456,14 +511,7 @@ export async function fetchComparisonProducts(): Promise<ListingsFetchResult> {
     inStockProducts: stats.inStockProducts,
     lastUpdated,
     schema: "legacy",
-    deltas: {
-      inStockProducts: deltaFromPrevious(
-        stats.inStockProducts,
-        previousSnapshot?.in_stock_products,
-      ),
-      shops: deltaFromPrevious(stats.shopCount, previousSnapshot?.shops_count),
-      inStockOffers: deltaFromPrevious(stats.inStockOffers, previousSnapshot?.in_stock_offers),
-    },
+    deltas: buildDeltas(stats, previousSnapshot, countNewProducts(products)),
   };
 }
 

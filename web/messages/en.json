@@ -91,7 +91,7 @@
     "metricMedian": "Median = middle price among offers",
     "metricGap": "Price Gap = highest - lowest price",
     "metricDelta": "Delta = best vs median (%)",
-    "vsLastUpdate": "vs last update",
+    "vsLastUpdate": "new since last update",
     "showNewProducts": "Tap to see new products"
   },
   "filters": {

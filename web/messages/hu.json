@@ -91,7 +91,7 @@
     "metricMedian": "Medián = középső ár az ajánlatok között",
     "metricGap": "Árkülönbség = legmagasabb - legalacsonyabb ár",
     "metricDelta": "Delta = legjobb vs medián (%)",
-    "vsLastUpdate": "vs utolsó frissítés",
+    "vsLastUpdate": "új az utolsó frissítés óta",
     "showNewProducts": "Koppints az új termékekhez"
   },
   "filters": {
