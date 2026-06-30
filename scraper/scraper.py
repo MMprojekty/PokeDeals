@@ -154,14 +154,48 @@ def clean_price(price_text: Optional[str]) -> int:
         price_text.replace("\u00a0", " ")
         .replace("HUF", "")
         .replace("huf", "")
-        .replace("Ft", "")
+        .strip()
+    )
+    normalized = re.sub(r"Egységár:.*", "", normalized, flags=re.IGNORECASE)
+    normalized = re.sub(r"Ft/[^\s]+", "", normalized, flags=re.IGNORECASE)
+
+    match = re.search(r"(\d[\d\s.]*)\s*Ft", normalized, flags=re.IGNORECASE)
+    if match:
+        digits = "".join(ch for ch in match.group(1) if ch.isdigit())
+        if digits:
+            return int(digits)
+
+    normalized = (
+        normalized.replace("Ft", "")
         .replace("ft", "")
         .strip()
     )
-    # Drop trailing decimal part if present (rare on HU shops).
     normalized = normalized.split(",")[0]
     digits = "".join(ch for ch in normalized if ch.isdigit())
     return int(digits) if digits else 0
+
+
+def max_plausible_price_huf(title: str) -> int:
+    signals = detect_product_signals(title)
+    if "booster_pack" in signals:
+        return 25_000
+    if "bundle" in signals:
+        return 80_000
+    if "tin" in signals or "blister" in signals:
+        return 35_000
+    if "etb" in signals:
+        return 90_000
+    if "booster_box" in signals:
+        return 250_000
+    if "box_set" in signals:
+        return 120_000
+    return 500_000
+
+
+def is_plausible_price_huf(price_huf: int, title: str) -> bool:
+    if price_huf < 400:
+        return False
+    return price_huf <= max_plausible_price_huf(title)
 
 
 def is_allowed_product_title(title: str) -> bool:
@@ -580,9 +614,9 @@ def get_shop_configs() -> List[ShopConfig]:
         ShopConfig(
             name="SportKartyabolt",
             url="https://sportkartyabolt.hu/Pokemon-Kartya",
-            card_sel=".product",
-            title_sel="h2",
-            price_sel="[class*=price]",
+            card_sel="article.product.js-product",
+            title_sel="h2.product__name, .product__name",
+            price_sel=".product__prices-wrap",
             out_of_stock_text="nincs raktaron",
             next_btn="a.next",
             base_url="https://sportkartyabolt.hu",
@@ -749,9 +783,14 @@ def is_cart_or_junk_url(href: Optional[str]) -> bool:
 def read_price_text(price_el) -> str:
     if not price_el:
         return ""
-    sale_el = price_el.select_one("ins .amount, ins")
+    sale_el = price_el.select_one(
+        "ins .amount, ins, .product__price-sale .product__price-base-value, .product__price-sale"
+    )
     if sale_el:
         return sale_el.get_text(strip=True)
+    base_el = price_el.select_one(".product__price-base-value, [class*='price_net_brutto']")
+    if base_el:
+        return base_el.get_text(strip=True)
     return price_el.get_text(strip=True)
 
 
@@ -824,9 +863,19 @@ async def pick_product_url_pw(card, config: ShopConfig) -> str:
 async def read_price_text_pw(price_el) -> str:
     if not price_el:
         return ""
-    sale_el = await price_el.query_selector("ins .amount, ins")
-    if sale_el:
-        return ((await sale_el.text_content()) or "").strip()
+    for selector in (
+        "ins .amount",
+        "ins",
+        ".product__price-sale .product__price-base-value",
+        ".product__price-sale",
+        ".product__price-base-value",
+        "[class*='price_net_brutto']",
+    ):
+        sale_el = await price_el.query_selector(selector)
+        if sale_el:
+            text = ((await sale_el.text_content()) or "").strip()
+            if text:
+                return text
     return ((await price_el.text_content()) or "").strip()
 
 
@@ -895,6 +944,9 @@ def extract_card_data_http(card, config: ShopConfig) -> Optional[Dict[str, objec
     raw_title = read_title_text(title_el)
     price_huf = clean_price(read_price_text(price_el))
     if not raw_title or price_huf <= 0:
+        return None
+    if not is_plausible_price_huf(price_huf, raw_title):
+        logger.debug("%s: rejected implausible price %s for %s", config.name, price_huf, raw_title)
         return None
     if not is_allowed_product_title(raw_title):
         return None
@@ -1065,6 +1117,9 @@ async def extract_card_data(card, config: ShopConfig) -> Optional[Dict[str, obje
             raw_title = ((await title_el.get_attribute("title")) or "").strip()
         price_huf = clean_price(await read_price_text_pw(price_el))
         if not raw_title or price_huf <= 0:
+            return None
+        if not is_plausible_price_huf(price_huf, raw_title):
+            logger.debug("%s: rejected implausible price %s for %s", config.name, price_huf, raw_title)
             return None
         if not is_allowed_product_title(raw_title):
             return None

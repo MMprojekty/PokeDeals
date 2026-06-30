@@ -77,6 +77,15 @@ function median(values: number[]): number {
     : sorted[mid];
 }
 
+function dropPriceOutliers(offers: ShopOffer[]): ShopOffer[] {
+  const prices = offers.map((offer) => offer.priceHuf).filter((price) => price > 0);
+  if (prices.length < 2) return offers;
+
+  const min = Math.min(...prices);
+  const maxAllowed = Math.max(min * 8, 150_000);
+  return offers.filter((offer) => offer.priceHuf > 0 && offer.priceHuf <= maxAllowed);
+}
+
 export function canonicalKey(name: string): string {
   return name
     .toLowerCase()
@@ -105,7 +114,8 @@ function buildComparisonProduct(
   offers: ShopOffer[],
   trendingScore = 50,
 ): ComparisonProduct {
-  const validPrices = offers.map((o) => o.priceHuf).filter((p) => p > 0);
+  const saneOffers = dropPriceOutliers(offers);
+  const validPrices = saneOffers.map((o) => o.priceHuf).filter((p) => p > 0);
   const lowestPrice = validPrices.length ? Math.min(...validPrices) : 0;
   const highestPrice = validPrices.length ? Math.max(...validPrices) : 0;
   const medianPrice = median(validPrices);
@@ -132,7 +142,7 @@ function buildComparisonProduct(
     trendingScore,
     isNewSinceLastUpdate: false,
     hasNewOffersSinceLastUpdate: false,
-    offers: [...offers].sort((a, b) => a.priceHuf - b.priceHuf),
+    offers: [...saneOffers].sort((a, b) => a.priceHuf - b.priceHuf),
   };
 }
 
