@@ -1,6 +1,9 @@
 name: Scrape shop prices
 
 on:
+  schedule:
+    # Every hour at :05 UTC
+    - cron: "5 * * * *"
   workflow_dispatch:
 
 concurrency:

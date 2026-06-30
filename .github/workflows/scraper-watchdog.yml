@@ -1,7 +1,9 @@
-# Disabled — was adding extra failed runs. Re-enable manually when ready.
 name: Scraper watchdog
 
 on:
+  schedule:
+    # Backup if the :05 run was missed
+    - cron: "35 * * * *"
   workflow_dispatch:
 
 permissions:
@@ -23,7 +25,7 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           SUPABASE_LISTINGS_TABLE: shop_listings
-          SCRAPE_STALE_MINUTES: "55"
+          SCRAPE_STALE_MINUTES: "70"
         run: python3 scripts/check_scrape_stale.py
 
       - name: Trigger scraper if data is stale
