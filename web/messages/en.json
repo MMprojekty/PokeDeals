@@ -25,7 +25,8 @@
     "comparing": "Comparing",
     "storeOffers": "store offers",
     "viewDeal": "View deal",
-    "listingsLoadError": "Could not load listings."
+    "listingsLoadError": "Could not load listings.",
+    "newFilterEmpty": "No matching new items in this update. The list is ready after the next scrape run."
   },
   "stock": {
     "inStock": "In Stock",

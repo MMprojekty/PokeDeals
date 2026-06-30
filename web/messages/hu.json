@@ -25,7 +25,8 @@
     "comparing": "Összehasonlítás",
     "storeOffers": "bolti ajánlatok",
     "viewDeal": "Ajánlat megtekintése",
-    "listingsLoadError": "Nem sikerült betölteni a listákat."
+    "listingsLoadError": "Nem sikerült betölteni a listákat.",
+    "newFilterEmpty": "Nincs ilyen új tétel ebben a frissítésben. A lista a következő lekérés után lesz elérhető."
   },
   "stock": {
     "inStock": "Készleten",

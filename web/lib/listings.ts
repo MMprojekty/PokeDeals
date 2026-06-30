@@ -1,5 +1,6 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { buildTrendScoreMap, loadMarketTrends } from "@/lib/market-trends";
+import { loadNewSinceUpdate } from "@/lib/new-since-update";
 import { findProductSlug, slugMatchesProduct } from "@/lib/product-slug";
 
 /** One shop offer attached to a canonical product (comparison row). */
@@ -257,7 +258,24 @@ type StatsSnapshot = {
 function enrichWithNewFlags(
   products: ComparisonProduct[],
   previousSnapshot: StatsSnapshot | null,
+  newSinceUpdate: { product_keys?: string[]; offer_product_keys?: string[] } | null,
 ): ComparisonProduct[] {
+  const explicitNewProducts = new Set(newSinceUpdate?.product_keys ?? []);
+  const explicitNewOffers = new Set(newSinceUpdate?.offer_product_keys ?? []);
+
+  if (explicitNewProducts.size > 0 || explicitNewOffers.size > 0) {
+    return products.map((product) => {
+      const productKey = canonicalKey(product.displayTitle);
+      return {
+        ...product,
+        isNewSinceLastUpdate:
+          explicitNewProducts.has(productKey) || explicitNewProducts.has(product.productId),
+        hasNewOffersSinceLastUpdate:
+          explicitNewOffers.has(productKey) || explicitNewOffers.has(product.productId),
+      };
+    });
+  }
+
   const prevProductKeys = new Set(previousSnapshot?.product_keys ?? []);
   const prevOfferKeys = new Set(previousSnapshot?.offer_keys ?? []);
   if (prevProductKeys.size === 0 && prevOfferKeys.size === 0) {
@@ -364,7 +382,12 @@ export async function fetchComparisonProducts(): Promise<ListingsFetchResult> {
 
     const rows = (data ?? []) as ListingRow[];
     const previousSnapshot = await fetchPreviousStatsSnapshot(supabase);
-    const products = enrichWithNewFlags(groupNormalizedListings(rows), previousSnapshot);
+    const newSinceUpdate = await loadNewSinceUpdate(supabase);
+    const products = enrichWithNewFlags(
+      groupNormalizedListings(rows),
+      previousSnapshot,
+      newSinceUpdate,
+    );
     const inStockRows = rows.filter((row) => row.stock_status === "in_stock");
     const shops = new Set(inStockRows.map((row) => row.shop_name));
     const lastUpdated =
@@ -407,12 +430,17 @@ export async function fetchComparisonProducts(): Promise<ListingsFetchResult> {
   if (error) throw new Error(error.message);
 
   const rows = (data ?? []) as LegacyListingRow[];
-  const [marketTrends, previousSnapshot] = await Promise.all([
+  const [marketTrends, previousSnapshot, newSinceUpdate] = await Promise.all([
     loadMarketTrends(supabase),
     fetchPreviousStatsSnapshot(supabase),
+    loadNewSinceUpdate(supabase),
   ]);
   const trendScores = buildTrendScoreMap(marketTrends);
-  const products = enrichWithNewFlags(groupLegacyListings(rows, trendScores), previousSnapshot);
+  const products = enrichWithNewFlags(
+    groupLegacyListings(rows, trendScores),
+    previousSnapshot,
+    newSinceUpdate,
+  );
   const stats = computeLegacyStats(rows, trendScores);
   const lastUpdated =
     rows.map((r) => r.updated_at || r.created_at).filter(Boolean).sort().slice(-1)[0] ?? null;

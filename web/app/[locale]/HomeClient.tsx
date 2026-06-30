@@ -834,7 +834,9 @@ export function HomeClient({ initialData }: { initialData?: InitialListingsPaylo
                     {sortedFilteredProducts.length === 0 && (
                       <tr>
                         <td colSpan={7} className="p-8 text-center text-sm text-gray-500">
-                          {t("common.noData")}
+                          {newFilter !== "none"
+                            ? t("home.newFilterEmpty")
+                            : t("common.noData")}
                         </td>
                       </tr>
                     )}

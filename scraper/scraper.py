@@ -42,6 +42,7 @@ EUR_TO_HUF_RATE = 395.0
 LISTINGS_TABLE = os.getenv("SUPABASE_LISTINGS_TABLE", "shop_listings")
 STATS_BUCKET = "pokedeals-meta"
 STATS_OBJECT = "stats_snapshots.json"
+NEW_SINCE_UPDATE_OBJECT = "new_since_update.json"
 PRODUCT_HISTORY_OBJECT = "product_price_history.json"
 MAX_POINTS_PER_PRODUCT = 72
 PUBLIC_STATUS_BUCKET = "pokedeals-public"
@@ -1244,6 +1245,58 @@ def store_stats_snapshot(supabase_client: Client, stats: Dict[str, object]) -> N
     supabase_execute_with_retry(_do, "store_stats_snapshot")
 
 
+def load_keys_from_db(supabase_client: Client) -> Tuple[set, set]:
+    product_keys: set = set()
+    offer_keys: set = set()
+    try:
+        response = supabase_client.table(LISTINGS_TABLE).select("raw_title, shop_name").execute()
+        rows = response.data or []
+    except Exception as exc:
+        logger.warning("Could not load existing listings for diff: %s", exc)
+        return product_keys, offer_keys
+
+    for row in rows:
+        title = str(row.get("raw_title", "")).strip()
+        shop = str(row.get("shop_name", "")).strip()
+        if not title:
+            continue
+        key = canonical_key_for_grouping(title)
+        product_keys.add(key)
+        if shop:
+            offer_keys.add(f"{shop}|{key}")
+    return product_keys, offer_keys
+
+
+def store_new_since_update(
+    supabase_client: Client,
+    new_product_keys: List[str],
+    new_offer_product_keys: List[str],
+) -> None:
+    def _do() -> None:
+        try:
+            supabase_client.storage.get_bucket(STATS_BUCKET)
+        except Exception:
+            try:
+                supabase_client.storage.create_bucket(STATS_BUCKET, options={"public": False})
+            except Exception:
+                pass
+
+        body = json.dumps(
+            {
+                "updated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                "product_keys": new_product_keys,
+                "offer_product_keys": new_offer_product_keys,
+            }
+        ).encode("utf-8")
+        supabase_client.storage.from_(STATS_BUCKET).upload(
+            NEW_SINCE_UPDATE_OBJECT,
+            body,
+            file_options={"content-type": "application/json", "upsert": "true"},
+        )
+
+    supabase_execute_with_retry(_do, "store_new_since_update")
+
+
 def _median_int(values: List[int]) -> int:
     if not values:
         return 0
@@ -1454,7 +1507,10 @@ async def run_scraper(
         )
 
     if not dry_run:
+        previous_product_keys, previous_offer_keys = load_keys_from_db(supabase_client)
         flush_table(supabase_client)
+    else:
+        previous_product_keys, previous_offer_keys = set(), set()
 
     staged_items: List[Dict[str, object]] = []
     ai_match_cache: Dict[str, Tuple[bool, Optional[str]]] = {}
@@ -1525,6 +1581,22 @@ async def run_scraper(
     if inserted > 0:
         try:
             stats = compute_run_stats(final_items)
+            current_product_keys = set(stats.get("product_keys") or [])
+            current_offer_keys = set(stats.get("offer_keys") or [])
+            new_product_keys = sorted(current_product_keys - previous_product_keys)
+            new_offer_keys = sorted(current_offer_keys - previous_offer_keys)
+            new_offer_product_keys = sorted(
+                {
+                    offer_key.split("|", 1)[1]
+                    for offer_key in new_offer_keys
+                    if "|" in offer_key
+                }
+            )
+            store_new_since_update(
+                supabase_client,
+                new_product_keys,
+                new_offer_product_keys,
+            )
             store_stats_snapshot(supabase_client, stats)
             store_product_price_history(
                 supabase_client,
