@@ -54,7 +54,7 @@ function StatDelta({ delta, label }: { delta: number | null; label: string }) {
   );
 }
 
-type NewFilterMode = "none" | "newProducts" | "newOffers";
+type NewFilterMode = "none" | "newProducts";
 
 function BentoStatCard({
   label,
@@ -290,18 +290,13 @@ export function HomeClient({ initialData }: { initialData?: InitialListingsPaylo
   }, []);
 
   useEffect(() => {
-    const mode = searchParams.get("new");
-    if (mode === "products" || mode === "offers") {
-      setNewFilter(mode === "products" ? "newProducts" : "newOffers");
+    if (searchParams.get("new") === "products") {
+      setNewFilter("newProducts");
     }
   }, [searchParams]);
 
   const newProductCount = useMemo(
     () => products.filter((product) => product.isNewSinceLastUpdate ?? false).length,
-    [products],
-  );
-  const newOffersProductCount = useMemo(
-    () => products.filter((product) => product.hasNewOffersSinceLastUpdate ?? false).length,
     [products],
   );
 
@@ -313,8 +308,6 @@ export function HomeClient({ initialData }: { initialData?: InitialListingsPaylo
     const params = new URLSearchParams(searchParams.toString());
     if (next === "newProducts") {
       params.set("new", "products");
-    } else if (next === "newOffers") {
-      params.set("new", "offers");
     } else {
       params.delete("new");
     }
@@ -431,9 +424,6 @@ export function HomeClient({ initialData }: { initialData?: InitialListingsPaylo
     if (newFilter === "newProducts" && !(p.isNewSinceLastUpdate ?? false)) {
       return false;
     }
-    if (newFilter === "newOffers" && !(p.hasNewOffersSinceLastUpdate ?? false)) {
-      return false;
-    }
 
     if (activeFilter === "boxes") return title.includes("booster box") || title.includes("display");
     if (activeFilter === "bundles") return title.includes("booster bundle") || title.includes("bundle");
@@ -543,7 +533,10 @@ export function HomeClient({ initialData }: { initialData?: InitialListingsPaylo
             </button>
           </div>
         ) : null}
-        <h2 className="text-3xl font-bold mb-4">{t("home.pageTitle")}</h2>
+        <h2 className="text-3xl font-bold mb-2">{t("home.pageTitle")}</h2>
+        <p className="text-base text-gray-600 mb-4">
+          {t("home.pageSubtitle", { products: products.length, offers: totalOffers })}
+        </p>
 
         <section className="mb-6 max-w-3xl space-y-2 text-sm leading-relaxed text-gray-600">
           <p>{t("seo.introP1")}</p>
@@ -564,7 +557,7 @@ export function HomeClient({ initialData }: { initialData?: InitialListingsPaylo
           />
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
           <BentoStatCard
             label={t("bento.inStockProducts")}
             value={products.length}
@@ -583,17 +576,7 @@ export function HomeClient({ initialData }: { initialData?: InitialListingsPaylo
             clickable={false}
             active={false}
           />
-          <BentoStatCard
-            label={t("bento.inStockOffers")}
-            value={totalOffers}
-            delta={statsDeltas.inStockOffers}
-            deltaLabel={t("bento.vsLastUpdate")}
-            clickable={(statsDeltas.inStockOffers ?? 0) > 0 && newOffersProductCount > 0}
-            active={newFilter === "newOffers"}
-            onClick={() => applyNewFilter("newOffers")}
-            hint={t("bento.showNewOffers")}
-          />
-          <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm sm:col-span-2 lg:col-span-1">
+          <div className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
             <div className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">{t("bento.metricsTitle")}</div>
             <div className="text-xs text-gray-600 space-y-1">
               <div>• {t("bento.metricOffers")}</div>
@@ -625,10 +608,7 @@ export function HomeClient({ initialData }: { initialData?: InitialListingsPaylo
                   onClick={() => applyNewFilter("none")}
                   className={`whitespace-nowrap px-4 py-1.5 rounded-lg text-sm font-bold transition-colors border ${btnAct}`}
                 >
-                  {newFilter === "newProducts"
-                    ? t("filters.newProducts", { count: newProductCount })
-                    : t("filters.newOffers", { count: newOffersProductCount })}{" "}
-                  ×
+                  {t("filters.newProducts", { count: newProductCount })} ×
                 </button>
               ) : null}
               <button

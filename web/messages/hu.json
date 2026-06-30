@@ -14,7 +14,7 @@
   },
   "home": {
     "pageTitle": "Pokémon TCG árak magyar boltokban",
-    "pageSubtitle": "Követjük a {products} egyedi terméket {offers} élő ajánlatban.",
+    "pageSubtitle": "{offers} élő boltajánlat {products} egyedi termékhez.",
     "comparePrices": "Árak összehasonlítása",
     "productsHeading": "Jelenleg készleten",
     "productsSubtitle": "Az utolsó frissítés óta újonnan készletre került termékek ✨ Új jelzéssel vannak megjelölve.",
@@ -86,21 +86,18 @@
   "bento": {
     "inStockProducts": "Készleten lévő termékek",
     "shops": "Boltok",
-    "inStockOffers": "Készleten lévő ajánlatok",
     "metricsTitle": "Mit jelentenek a számok",
-    "metricOffers": "Ajánlatok = készleten lévő bolti ajánlatok",
+    "metricOffers": "Ajánlatok oszlop = hány bolt kínálja a terméket",
     "metricMedian": "Medián = középső ár az ajánlatok között",
     "metricGap": "Árkülönbség = legmagasabb - legalacsonyabb ár",
     "metricDelta": "Delta = legjobb vs medián (%)",
     "vsLastUpdate": "vs utolsó frissítés",
-    "showNewProducts": "Koppints az új termékekhez",
-    "showNewOffers": "Koppints az új boltajánlatokhoz"
+    "showNewProducts": "Koppints az új termékekhez"
   },
   "filters": {
     "allLanguages": "Összes nyelv",
     "englishOnly": "Csak angol",
-    "newProducts": "Új termékek ({count})",
-    "newOffers": "Új boltajánlatok ({count})"
+    "newProducts": "Új termékek ({count})"
   },
   "search": {
     "label": "Termékek keresése",

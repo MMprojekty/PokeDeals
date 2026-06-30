@@ -14,7 +14,7 @@
   },
   "home": {
     "pageTitle": "Pokemon TCG Prices Across Hungarian Shops",
-    "pageSubtitle": "Tracking {products} unique products across {offers} live offers.",
+    "pageSubtitle": "Tracking {products} unique products across {offers} live shop listings.",
     "comparePrices": "Compare Prices",
     "productsHeading": "In stock now",
     "productsSubtitle": "Products newly in stock since the last update are marked with ✨ New.",
@@ -86,21 +86,18 @@
   "bento": {
     "inStockProducts": "In-stock products",
     "shops": "Shops",
-    "inStockOffers": "In-stock offers",
     "metricsTitle": "What the numbers mean",
-    "metricOffers": "Offers = in-stock shop offers",
+    "metricOffers": "Offers column = shops listing that product",
     "metricMedian": "Median = middle price among offers",
     "metricGap": "Price Gap = highest - lowest price",
     "metricDelta": "Delta = best vs median (%)",
     "vsLastUpdate": "vs last update",
-    "showNewProducts": "Tap to see new products",
-    "showNewOffers": "Tap to see new listings"
+    "showNewProducts": "Tap to see new products"
   },
   "filters": {
     "allLanguages": "All languages",
     "englishOnly": "English only",
-    "newProducts": "New products ({count})",
-    "newOffers": "New shop listings ({count})"
+    "newProducts": "New products ({count})"
   },
   "search": {
     "label": "Search products",
