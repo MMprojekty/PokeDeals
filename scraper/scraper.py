@@ -1300,26 +1300,65 @@ def store_stats_snapshot(supabase_client: Client, stats: Dict[str, object]) -> N
     supabase_execute_with_retry(_do, "store_stats_snapshot")
 
 
-def load_keys_from_db(supabase_client: Client) -> Tuple[set, set]:
+def load_previous_state(supabase_client: Client) -> Tuple[set, set, set]:
+    """Product/offer keys plus stable shop|product_url ids for rename-safe diffs."""
     product_keys: set = set()
     offer_keys: set = set()
+    listing_ids: set = set()
     try:
-        response = supabase_client.table(LISTINGS_TABLE).select("raw_title, shop_name").execute()
+        response = (
+            supabase_client.table(LISTINGS_TABLE)
+            .select("raw_title, shop_name, product_url")
+            .execute()
+        )
         rows = response.data or []
     except Exception as exc:
         logger.warning("Could not load existing listings for diff: %s", exc)
-        return product_keys, offer_keys
+        return product_keys, offer_keys, listing_ids
 
     for row in rows:
         title = str(row.get("raw_title", "")).strip()
         shop = str(row.get("shop_name", "")).strip()
+        url = str(row.get("product_url", "")).strip()
         if not title:
             continue
         key = canonical_key_for_grouping(title)
         product_keys.add(key)
         if shop:
             offer_keys.add(f"{shop}|{key}")
-    return product_keys, offer_keys
+            if url:
+                listing_ids.add(f"{shop}|{url}")
+    return product_keys, offer_keys, listing_ids
+
+
+def compute_new_since_keys(
+    final_items: List[Dict[str, object]],
+    previous_product_keys: set,
+    previous_offer_keys: set,
+    previous_listing_ids: set,
+) -> Tuple[List[str], List[str]]:
+    """New products = unseen listings with unseen product keys (ignores AI title renames)."""
+    new_product_keys: set = set()
+    new_offer_product_keys: set = set()
+
+    for item in final_items:
+        title = str(item.get("raw_title", "")).strip()
+        shop = str(item.get("shop_name", "")).strip()
+        url = str(item.get("product_url", "")).strip()
+        if not title:
+            continue
+        key = canonical_key_for_grouping(title)
+        listing_id = f"{shop}|{url}" if shop and url else ""
+
+        if listing_id and listing_id in previous_listing_ids:
+            continue
+
+        if key in previous_product_keys:
+            new_offer_product_keys.add(key)
+        else:
+            new_product_keys.add(key)
+
+    return sorted(new_product_keys), sorted(new_offer_product_keys)
 
 
 def store_new_since_update(
@@ -1562,10 +1601,12 @@ async def run_scraper(
         )
 
     if not dry_run:
-        previous_product_keys, previous_offer_keys = load_keys_from_db(supabase_client)
+        previous_product_keys, previous_offer_keys, previous_listing_ids = load_previous_state(
+            supabase_client
+        )
         flush_table(supabase_client)
     else:
-        previous_product_keys, previous_offer_keys = set(), set()
+        previous_product_keys, previous_offer_keys, previous_listing_ids = set(), set(), set()
 
     staged_items: List[Dict[str, object]] = []
     ai_match_cache: Dict[str, Tuple[bool, Optional[str]]] = {}
@@ -1622,21 +1663,21 @@ async def run_scraper(
     if inserted > 0:
         try:
             stats = compute_run_stats(final_items)
-            current_product_keys = set(stats.get("product_keys") or [])
-            current_offer_keys = set(stats.get("offer_keys") or [])
-            new_product_keys = sorted(current_product_keys - previous_product_keys)
-            new_offer_keys = sorted(current_offer_keys - previous_offer_keys)
-            new_offer_product_keys = sorted(
-                {
-                    offer_key.split("|", 1)[1]
-                    for offer_key in new_offer_keys
-                    if "|" in offer_key
-                }
+            new_product_keys, new_offer_product_keys = compute_new_since_keys(
+                final_items,
+                previous_product_keys,
+                previous_offer_keys,
+                previous_listing_ids,
             )
             store_new_since_update(
                 supabase_client,
                 new_product_keys,
                 new_offer_product_keys,
+            )
+            logger.info(
+                "New since update: %d products, %d with new shop listings.",
+                len(new_product_keys),
+                len(new_offer_product_keys),
             )
             store_stats_snapshot(supabase_client, stats)
             store_product_price_history(

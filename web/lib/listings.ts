@@ -292,28 +292,62 @@ async function fetchStatsSnapshotPair(
   }
 }
 
+function tokenOverlapSimilarity(a: string, b: string): number {
+  const ta = new Set(a.split(" ").filter(Boolean));
+  const tb = new Set(b.split(" ").filter(Boolean));
+  if (ta.size === 0 || tb.size === 0) return 0;
+  let intersection = 0;
+  for (const token of ta) {
+    if (tb.has(token)) intersection++;
+  }
+  return intersection / (ta.size + tb.size - intersection);
+}
+
+function keysSimilar(a: string, b: string, threshold = 0.65): boolean {
+  return tokenOverlapSimilarity(a, b) >= threshold;
+}
+
+/** Drop keys that are probably AI title renames of an existing product. */
+function filterLikelyRenamedKeys(
+  candidateKeys: Iterable<string>,
+  previousKeys: Set<string>,
+): Set<string> {
+  if (previousKeys.size === 0) {
+    return new Set(candidateKeys);
+  }
+  const previous = [...previousKeys];
+  const filtered = new Set<string>();
+  for (const key of candidateKeys) {
+    if (previousKeys.has(key)) continue;
+    const renamed = previous.some((prev) => keysSimilar(key, prev));
+    if (!renamed) filtered.add(key);
+  }
+  return filtered;
+}
+
 function resolveNewProductKeys(
   newSinceUpdate: { product_keys?: string[] } | null,
   latestSnapshot: StatsSnapshot | null,
   previousSnapshot: StatsSnapshot | null,
 ): Set<string> {
+  const previousKeys = new Set(previousSnapshot?.product_keys ?? []);
+
   if (newSinceUpdate !== null) {
-    return new Set(newSinceUpdate.product_keys ?? []);
+    return filterLikelyRenamedKeys(newSinceUpdate.product_keys ?? [], previousKeys);
   }
 
   const latestKeys = latestSnapshot?.product_keys ?? [];
-  const previousKeys = new Set(previousSnapshot?.product_keys ?? []);
   if (latestKeys.length === 0 || previousKeys.size === 0) {
     return new Set();
   }
 
-  const newKeys = new Set<string>();
+  const rawNewKeys: string[] = [];
   for (const key of latestKeys) {
     if (!previousKeys.has(key)) {
-      newKeys.add(key);
+      rawNewKeys.push(key);
     }
   }
-  return newKeys;
+  return filterLikelyRenamedKeys(rawNewKeys, previousKeys);
 }
 
 function deltaFromPrevious(current: number, previous: number | undefined): number | null {

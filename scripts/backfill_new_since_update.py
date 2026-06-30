@@ -27,6 +27,29 @@ STATS_OBJECT = "stats_snapshots.json"
 NEW_SINCE_UPDATE_OBJECT = "new_since_update.json"
 
 
+def _token_overlap(a: str, b: str) -> float:
+    ta = set(a.split())
+    tb = set(b.split())
+    if not ta or not tb:
+        return 0.0
+    inter = len(ta & tb)
+    return inter / len(ta | tb)
+
+
+def _filter_renamed_keys(candidate_keys: list[str], previous_keys: set[str]) -> list[str]:
+    if not previous_keys:
+        return candidate_keys
+    kept: list[str] = []
+    previous = list(previous_keys)
+    for key in candidate_keys:
+        if key in previous_keys:
+            continue
+        if any(_token_overlap(key, prev) >= 0.65 for prev in previous):
+            continue
+        kept.append(key)
+    return sorted(kept)
+
+
 def main() -> int:
     url = os.getenv("SUPABASE_URL", "").strip()
     key = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "").strip()
@@ -54,6 +77,7 @@ def main() -> int:
         return 1
 
     new_product_keys = sorted(set(newer_keys) - set(older_keys))
+    new_product_keys = _filter_renamed_keys(new_product_keys, set(older_keys))
     newer_offers = set(newer.get("offer_keys") or [])
     older_offers = set(older.get("offer_keys") or [])
     new_offer_keys = sorted(newer_offers - older_offers)
