@@ -16,7 +16,7 @@ SCRAPER_ENV = ROOT / "scraper" / ".env"
 REPO = os.environ.get("GITHUB_REPO", "MMprojekty/PokeDeals")
 WORKFLOW_FILE = "scraper.yml"
 GITHUB_API = "https://api.github.com"
-VERCEL_SITE = os.environ.get("NEXT_PUBLIC_SITE_URL", "https://pokedeals.vercel.app").rstrip("/")
+VERCEL_SITE = os.environ.get("NEXT_PUBLIC_SITE_URL", "https://pokedeals-liart.vercel.app").rstrip("/")
 
 
 def load_env(path: Path) -> dict[str, str]:

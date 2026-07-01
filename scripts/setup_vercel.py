@@ -281,6 +281,18 @@ def deployment_url(deployment: dict) -> str:
     return url
 
 
+def production_site_url(project: dict) -> str:
+    aliases = (
+        project.get("targets", {})
+        .get("production", {})
+        .get("alias", [])
+    )
+    if aliases:
+        host = aliases[0]
+        return f"https://{host}" if not host.startswith("http") else host.rstrip("/")
+    return f"https://{PROJECT_NAME}.vercel.app"
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Configure Vercel hosting for PokeDeals web app.")
     parser.add_argument("--github-token", help="GitHub token with repo admin (for storing secrets)")
@@ -311,7 +323,7 @@ def main() -> int:
     project_id = project["id"]
     org_id = project.get("accountId") or user.get("user", {}).get("id") or user.get("id")
 
-    site_url = f"https://{PROJECT_NAME}.vercel.app"
+    site_url = production_site_url(project)
     cron_secret = env.get("CRON_SECRET", "").strip() or secrets.token_urlsafe(24)
     env_values = {
         "SUPABASE_URL": env.get("SUPABASE_URL", ""),
