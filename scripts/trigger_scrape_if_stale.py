@@ -57,13 +57,17 @@ def latest_data_age_minutes() -> int:
 
 def scrape_in_progress(token: str) -> bool:
     owner, repo = REPO.split("/", 1)
-    payload = github_request(
-        token,
-        "GET",
-        f"/repos/{owner}/{repo}/actions/workflows/{WORKFLOW_FILE}/runs?status=in_progress&per_page=5",
-    )
-    runs = payload.get("workflow_runs") or []
-    return len(runs) > 0
+    active_statuses = ("in_progress", "queued", "waiting", "pending")
+    for status in active_statuses:
+        payload = github_request(
+            token,
+            "GET",
+            f"/repos/{owner}/{repo}/actions/workflows/{WORKFLOW_FILE}/runs?status={status}&per_page=5",
+        )
+        runs = payload.get("workflow_runs") or []
+        if runs:
+            return True
+    return False
 
 
 def dispatch_force_scrape(token: str) -> None:

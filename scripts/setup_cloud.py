@@ -130,7 +130,7 @@ def trigger_workflow(token: str) -> None:
         token,
         "POST",
         f"/repos/{REPO}/actions/workflows/scraper.yml/dispatches",
-        {"ref": "main", "inputs": {"force": True}},
+        {"ref": "main", "inputs": {"force": "true"}},
     )
     print("  triggered workflow: Scrape shop prices (forced)")
 

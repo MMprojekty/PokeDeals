@@ -7,7 +7,7 @@ const listingsTable = process.env.SUPABASE_LISTINGS_TABLE || "shop_listings";
 const githubToken = process.env.GITHUB_TOKEN;
 const githubRepo = process.env.GITHUB_REPO || "MMprojekty/PokeDeals";
 
-const TRIGGER_AFTER_MINUTES = Number(process.env.SCRAPE_TRIGGER_AFTER_MINUTES || 38);
+const TRIGGER_AFTER_MINUTES = Number(process.env.SCRAPE_TRIGGER_AFTER_MINUTES || 32);
 const COOLDOWN_MINUTES = Number(process.env.SCRAPE_TRIGGER_COOLDOWN_MINUTES || 20);
 
 export const revalidate = 0;
@@ -72,6 +72,34 @@ async function getLastRunCreatedAt(): Promise<number | null> {
   return Number.isFinite(epoch) ? epoch : null;
 }
 
+async function scrapeInProgress(): Promise<boolean> {
+  if (!githubToken) {
+    return false;
+  }
+
+  for (const status of ["in_progress", "queued", "waiting", "pending"]) {
+    const response = await fetch(
+      `https://api.github.com/repos/${githubRepo}/actions/workflows/scraper.yml/runs?status=${status}&per_page=5`,
+      {
+        headers: {
+          Authorization: `Bearer ${githubToken}`,
+          Accept: "application/vnd.github+json",
+          "X-GitHub-Api-Version": "2022-11-28",
+        },
+        cache: "no-store",
+      },
+    );
+    if (!response.ok) {
+      continue;
+    }
+    const payload = await response.json().catch(() => null);
+    if ((payload?.workflow_runs?.length ?? 0) > 0) {
+      return true;
+    }
+  }
+  return false;
+}
+
 export async function POST() {
   if (!githubToken) {
     return NextResponse.json(
@@ -91,6 +119,13 @@ export async function POST() {
   if (ageMinutes < TRIGGER_AFTER_MINUTES) {
     return NextResponse.json(
       { triggered: false, reason: "fresh", ageMinutes },
+      { headers: { "Cache-Control": "no-store" } },
+    );
+  }
+
+  if (await scrapeInProgress()) {
+    return NextResponse.json(
+      { triggered: false, reason: "in_progress", ageMinutes },
       { headers: { "Cache-Control": "no-store" } },
     );
   }

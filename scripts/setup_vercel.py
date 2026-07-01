@@ -322,7 +322,7 @@ def main() -> int:
         "GITHUB_REPO": REPO,
         "CRON_SECRET": cron_secret,
         "SCRAPE_STALE_MINUTES": "45",
-        "SCRAPE_TRIGGER_AFTER_MINUTES": "38",
+        "SCRAPE_TRIGGER_AFTER_MINUTES": "32",
     }
     print("Setting Vercel environment variables...")
     upsert_env_vars(vercel_token, project_id, team_id, env_values)

@@ -2,14 +2,14 @@ name: Scrape shop prices
 
 on:
   schedule:
-    # Every 20 minutes — GitHub cron is often late, so use multiple slots.
-    - cron: "5,25,45 * * * *"
+    # Six chances per hour — GitHub cron is often late on free tier.
+    - cron: "5,15,25,35,45,55 * * * *"
   workflow_dispatch:
     inputs:
       force:
-        description: "Run even if data is still fresh"
-        type: boolean
-        default: false
+        description: "Run even if data is still fresh (true/false)"
+        type: string
+        default: "false"
 
 concurrency:
   group: shop-scraper
@@ -26,21 +26,21 @@ jobs:
 
       - name: Check data freshness
         id: stale
-        if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.force) }}
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.force != 'true' }}
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           SUPABASE_LISTINGS_TABLE: shop_listings
-          SCRAPE_STALE_MINUTES: "25"
+          SCRAPE_STALE_MINUTES: "20"
         run: python3 scripts/check_scrape_stale.py
 
       - name: Skip — data is still fresh
-        if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.force) && steps.stale.outputs.stale != 'true' }}
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.force != 'true' && steps.stale.outputs.stale != 'true' }}
         run: |
           echo "Data age is ${{ steps.stale.outputs.age_minutes }} min — skipping scrape."
 
       - name: Set up Python
-        if: ${{ (github.event_name == 'workflow_dispatch' && inputs.force) || steps.stale.outputs.stale == 'true' }}
+        if: ${{ github.event_name == 'schedule' || inputs.force == 'true' || steps.stale.outputs.stale == 'true' }}
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -48,7 +48,7 @@ jobs:
           cache-dependency-path: scraper/requirements.txt
 
       - name: Install scraper dependencies
-        if: ${{ (github.event_name == 'workflow_dispatch' && inputs.force) || steps.stale.outputs.stale == 'true' }}
+        if: ${{ github.event_name == 'schedule' || inputs.force == 'true' || steps.stale.outputs.stale == 'true' }}
         working-directory: scraper
         run: |
           python -m pip install --upgrade pip
@@ -56,7 +56,7 @@ jobs:
           playwright install chromium --with-deps
 
       - name: Run scraper
-        if: ${{ (github.event_name == 'workflow_dispatch' && inputs.force) || steps.stale.outputs.stale == 'true' }}
+        if: ${{ github.event_name == 'schedule' || inputs.force == 'true' || steps.stale.outputs.stale == 'true' }}
         working-directory: scraper
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}

@@ -179,7 +179,7 @@ export function HomeClient({ initialData }: { initialData?: InitialListingsPaylo
   }
 
   async function maybeTriggerScrape(ageMinutes: number | null, stale: boolean) {
-    if (!stale || ageMinutes === null || ageMinutes < 38) {
+    if (!stale || ageMinutes === null || ageMinutes < 32) {
       return;
     }
     const storageKey = "pokedeals-scrape-trigger";
