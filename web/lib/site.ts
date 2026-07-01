@@ -1,6 +1,6 @@
 import { routing } from "@/i18n/routing";
 
-const FALLBACK_SITE_URL = "https://pokedeals.hu";
+const FALLBACK_SITE_URL = "https://pokedeals.vercel.app";
 
 export function getSiteUrl(): string {
   const raw = process.env.NEXT_PUBLIC_SITE_URL?.trim();

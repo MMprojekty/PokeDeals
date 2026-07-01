@@ -13,57 +13,54 @@ concurrency:
   group: deploy-web-production
   cancel-in-progress: true
 
-env:
-  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
 
     steps:
       - name: Check Vercel secrets
         run: |
           if [ -z "${{ secrets.VERCEL_TOKEN }}" ]; then
-            echo "::error::Missing VERCEL_TOKEN in GitHub Actions secrets."
-            echo "Run locally: python3 scripts/setup_vercel.py"
-            exit 1
-          fi
-          if [ -z "${{ secrets.VERCEL_ORG_ID }}" ]; then
-            echo "::error::Missing VERCEL_ORG_ID in GitHub Actions secrets."
-            echo "Run locally: python3 scripts/setup_vercel.py"
+            echo "::error::Missing VERCEL_TOKEN. Run: python3 scripts/setup_vercel.py"
             exit 1
           fi
           if [ -z "${{ secrets.VERCEL_PROJECT_ID }}" ]; then
-            echo "::error::Missing VERCEL_PROJECT_ID in GitHub Actions secrets."
-            echo "Run locally: python3 scripts/setup_vercel.py"
+            echo "::error::Missing VERCEL_PROJECT_ID. Run: python3 scripts/setup_vercel.py"
             exit 1
           fi
 
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: npm
-          cache-dependency-path: web/package-lock.json
-
-      - name: Install Vercel CLI
-        run: npm install --global vercel@41.4.0
-
-      # Monorepo: Vercel project rootDirectory is "web" — run CLI from repo root.
-      - name: Pull Vercel environment
-        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
-
-      - name: Build
-        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
-
-      - name: Deploy to production
-        id: deploy
+      - name: Trigger Vercel production deploy
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
-          url=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})
-          echo "url=${url}" >> "$GITHUB_OUTPUT"
-          echo "Live deployment: ${url}"
+          set -euo pipefail
+          payload=$(cat <<EOF
+          {
+            "name": "pokedeals",
+            "target": "production",
+            "gitSource": {
+              "type": "github",
+              "org": "MMprojekty",
+              "repo": "PokeDeals",
+              "ref": "${{ github.sha }}"
+            }
+          }
+          EOF
+          )
+          response=$(curl -sS -w "\n%{http_code}" -X POST \
+            "https://api.vercel.com/v13/deployments" \
+            -H "Authorization: Bearer ${VERCEL_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d "${payload}")
+          body=$(echo "$response" | sed '$d')
+          code=$(echo "$response" | tail -n 1)
+          echo "$body"
+          if [ "$code" -lt 200 ] || [ "$code" -ge 300 ]; then
+            echo "::error::Vercel deploy API returned HTTP ${code}"
+            exit 1
+          fi
+          url=$(echo "$body" | python3 -c "import json,sys; d=json.load(sys.stdin); u=d.get('url',''); print(f'https://{u}' if u and not u.startswith('http') else u)" 2>/dev/null || true)
+          if [ -n "$url" ]; then
+            echo "Deployment started: ${url}"
+          fi
